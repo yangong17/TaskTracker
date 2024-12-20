@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+    <title>Daily Task Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+    <script>
+        var allDone = {{ 'true' if all_done else 'false' }};
+    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Daily Task Tracker</h1>
+        
+        {% if deadline_str %}
+        <div class="deadline-display">
+            Deadline: {{ deadline_str }}
+        </div>
+        {% endif %}
+        
+        <div id="countdown" class="countdown">--:--:--</div>
+        
+        <form action="{{ url_for('add_task') }}" method="post" class="task-form">
+            <input type="text" name="task_text" placeholder="New task" required class="task-input">
+            <button type="submit" class="btn add-btn">Add Task</button>
+        </form>
+
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Complete</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td class="task-cell" style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'white' if task.completed else 'black' }}">{{ task.text }}</td>
+                    <td><a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">{{ 'Undo' if task.completed else 'Complete' }}</a></td>
+                    <td><a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
+            <label for="deadline-select">Deadline:</label>
+            <select name="deadline" id="deadline-select" class="dropdown">
+                {% for inc in increments %}
+                <option value="{{ inc }}">{{ inc }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn deadline-btn">Start Countdown</button>
+        </form>
+
+        <form action="{{ url_for('reset_deadline') }}" method="post" class="reset-form">
+            <button type="submit" class="btn reset-btn">Reset Countdown</button>
+        </form>
+    </div>
+</body>
+</html>
