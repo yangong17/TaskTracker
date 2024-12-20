@@ -43,7 +43,6 @@ def get_time_increments():
     return increments
 
 def format_deadline(d):
-    # Format the deadline in a user-friendly manner, e.g. "11:00 AM"
     if d is None:
         return None
     hour_24 = d.hour

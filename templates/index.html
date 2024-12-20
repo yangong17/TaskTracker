@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
-    <title>Daily Task Tracker</title>
+    <title>Yang's Task Tracker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
     <script>
         var allDone = {{ 'true' if all_done else 'false' }};
+        var deadlineSet = {{ 'true' if deadline_str else 'false' }};
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Task Tracker</h1>
+        <h1>Yang's Task Tracker</h1>
         
         {% if deadline_str %}
         <div class="deadline-display">

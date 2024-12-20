@@ -1,20 +1,54 @@
-function updateCountdown() {
-    fetch('/get_remaining_time')
-    .then(response => response.text())
-    .then(seconds => {
-        let sec = parseInt(seconds);
-        let hrs = Math.floor(sec / 3600);
-        sec %= 3600;
-        let mins = Math.floor(sec / 60);
-        let secs = sec % 60;
-        document.getElementById('countdown').innerText =
-            (hrs < 10 ? '0' : '') + hrs + ':' +
-            (mins < 10 ? '0' : '') + mins + ':' +
-            (secs < 10 ? '0' : '') + secs;
-    });
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const countdownEl = document.getElementById('countdown');
 
-// If all tasks complete, run confetti
+    // If all tasks complete, show "All tasks complete" in green and do not update timer
+    if (allDone) {
+        countdownEl.innerText = "All tasks complete!";
+        countdownEl.classList.add('all-done');
+        launchConfetti();
+        return; // Stop any timer updates since tasks are all done
+    }
+
+    function updateCountdown() {
+        if (!deadlineSet) {
+            // No deadline set, just show default
+            countdownEl.innerText = "--:--:--";
+            return;
+        }
+
+        fetch('/get_remaining_time')
+        .then(response => response.text())
+        .then(seconds => {
+            let sec = parseInt(seconds);
+
+            if (sec <= 0) {
+                // Time's up
+                countdownEl.innerText = "Time's up!";
+                countdownEl.classList.remove('low-time');
+                return; // Stop updates
+            }
+
+            let hrs = Math.floor(sec / 3600);
+            sec %= 3600;
+            let mins = Math.floor(sec / 60);
+            let secs = sec % 60;
+
+            // Format: "1h 30m 30s"
+            countdownEl.innerText = hrs + ":" + mins + ":" + secs;
+
+            // If less than or equal to 15 minutes, turn red
+            if ((hrs * 3600 + mins * 60 + secs) <= 900) {
+                countdownEl.classList.add('low-time');
+            } else {
+                countdownEl.classList.remove('low-time');
+            }
+        });
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+});
+
 function launchConfetti() {
     var duration = 3 * 1000;
     var end = Date.now() + duration;
@@ -35,12 +69,3 @@ function launchConfetti() {
         }
     }());
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
-
-    if (allDone) {
-        launchConfetti();
-    }
-});

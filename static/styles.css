@@ -16,15 +16,16 @@ body {
 h1 {
     text-align: center;
     font-family: 'Open Sans', sans-serif;
-    font-size: 42px;
+    font-size: 32px;
     margin-bottom: 10px;
 }
 
+/* User requested changes */
 .deadline-display {
     text-align: center;
     font-size: 32px;
     font-weight: 700;
-    color: #ad0b0b;
+    color: #a70202;
     margin-bottom: 10px;
 }
 
@@ -125,6 +126,7 @@ h1 {
     margin-right: 10px;
 }
 
+/* User requested changes */
 .countdown {
     text-align: center;
     font-size: 96px;
@@ -132,6 +134,17 @@ h1 {
     margin-top: 10px;
     margin-bottom: 40px;
     font-family: 'Open Sans', sans-serif;
-    color: #3a3a3a;
-    text-shadow: 2px 2px #16161600;
+    color: #464646;
+    text-shadow: 2px 2px #ffc0cb00;
+    transition: color 0.3s;
+}
+
+.low-time {
+    color: red !important;
+}
+
+.all-done {
+    font-size: 80px;
+    color: rgb(33, 165, 33) !important;
+    text-shadow: 2px 2px #006326;
 }
