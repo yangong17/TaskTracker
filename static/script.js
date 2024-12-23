@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         countdownEl.innerText = "All tasks complete!";
         countdownEl.classList.add('all-done');
         launchConfetti();
-        return; // Stop any timer updates since tasks are all done
+        return; // Stop any timer updates
     }
 
     function updateCountdown() {
@@ -33,8 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let mins = Math.floor(sec / 60);
             let secs = sec % 60;
 
-            // Format: "1h 30m 30s"
-            countdownEl.innerText = hrs + ":" + mins + ":" + secs;
+            // If it's under an hour, display "M:SS"
+            if (hrs < 1) {
+                // zero-pad seconds
+                let secsStr = secs.toString().padStart(2, '0');
+                countdownEl.innerText = mins + ":" + secsStr;
+            } else {
+                // Otherwise, display "Xh Xm Xs"
+                countdownEl.innerText = hrs + ":" + mins + ":" + secs;
+            }
 
             // If less than or equal to 15 minutes, turn red
             if ((hrs * 3600 + mins * 60 + secs) <= 900) {
@@ -49,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCountdown();
 });
 
+/**
+ * Launch a brief confetti animation.
+ */
 function launchConfetti() {
     var duration = 3 * 1000;
     var end = Date.now() + duration;

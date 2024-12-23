@@ -20,7 +20,7 @@ h1 {
     margin-bottom: 10px;
 }
 
-/* User requested changes */
+/* User requested changes previously */
 .deadline-display {
     text-align: center;
     font-size: 32px;
@@ -126,7 +126,7 @@ h1 {
     margin-right: 10px;
 }
 
-/* User requested changes */
+/* User requested changes previously */
 .countdown {
     text-align: center;
     font-size: 96px;
@@ -144,7 +144,5 @@ h1 {
 }
 
 .all-done {
-    font-size: 80px;
-    color: rgb(33, 165, 33) !important;
-    text-shadow: 2px 2px #006326;
+    color: rgb(19, 201, 19) !important;
 }
