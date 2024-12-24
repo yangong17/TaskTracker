@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
-    <title>Task Tracker</title>
+    <title>Yang's Task Tracker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Task Tracker</h1>
+        <h1>Yang's Task Tracker</h1>
         
         {% if deadline_str %}
         <div class="deadline-display">
@@ -26,15 +26,18 @@
         
         <div id="countdown" class="countdown">--:--:--</div>
         
+        <!-- Add Task Form -->
         <form action="{{ url_for('add_task') }}" method="post" class="task-form">
             <input type="text" name="task_text" placeholder="New task" required class="task-input">
             <button type="submit" class="btn add-btn">Add Task</button>
         </form>
 
+        <!-- Tasks Table -->
         <table class="task-table">
             <thead>
                 <tr>
                     <th>Task</th>
+                    <th>Time</th>
                     <th>Complete</th>
                     <th>Delete</th>
                 </tr>
@@ -42,14 +45,35 @@
             <tbody>
                 {% for task in tasks %}
                 <tr>
-                    <td class="task-cell" style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'white' if task.completed else 'black' }}">{{ task.text }}</td>
-                    <td><a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">{{ 'Undo' if task.completed else 'Complete' }}</a></td>
-                    <td><a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a></td>
+                    <!-- TASK TEXT CELL -->
+                    <td class="task-cell"
+                        style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'white' if task.completed else 'black' }}">
+                        {{ task.text }}
+                    </td>
+                    <!-- TIME (lap) CELL -->
+                    <td>
+                        {% if task.lap_time %}
+                            {{ task.lap_time }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <!-- COMPLETE BUTTON CELL -->
+                    <td>
+                        <a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">
+                            {{ 'Undo' if task.completed else 'Complete' }}
+                        </a>
+                    </td>
+                    <!-- DELETE BUTTON CELL -->
+                    <td>
+                        <a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
+        <!-- Set Deadline Form -->
         <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
             <label for="deadline-select">Deadline:</label>
             <select name="deadline" id="deadline-select" class="dropdown">
@@ -60,6 +84,7 @@
             <button type="submit" class="btn deadline-btn">Start Countdown</button>
         </form>
 
+        <!-- Reset Deadline Form -->
         <form action="{{ url_for('reset_deadline') }}" method="post" class="reset-form">
             <button type="submit" class="btn reset-btn">Reset Countdown</button>
         </form>

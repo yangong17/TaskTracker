@@ -20,7 +20,6 @@ h1 {
     margin-bottom: 10px;
 }
 
-/* User requested changes previously */
 .deadline-display {
     text-align: center;
     font-size: 32px;
@@ -29,7 +28,9 @@ h1 {
     margin-bottom: 10px;
 }
 
-.task-form, .deadline-form, .reset-form {
+.task-form,
+.deadline-form,
+.reset-form {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
@@ -79,7 +80,8 @@ h1 {
     background: #fff;
 }
 
-.task-table th, .task-table td {
+.task-table th,
+.task-table td {
     text-align: left;
     padding: 10px;
     border-bottom: 1px solid #ccc;
@@ -126,7 +128,6 @@ h1 {
     margin-right: 10px;
 }
 
-/* User requested changes previously */
 .countdown {
     text-align: center;
     font-size: 96px;
@@ -144,5 +145,5 @@ h1 {
 }
 
 .all-done {
-    color: rgb(19, 201, 19) !important;
+    color: rgb(65, 204, 65) !important;
 }

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If all tasks complete, show "All tasks complete" in green and do not update timer
     if (allDone) {
-        countdownEl.innerText = "All tasks complete!";
+        countdownEl.innerText = "All tasks complete";
         countdownEl.classList.add('all-done');
         launchConfetti();
         return; // Stop any timer updates
@@ -18,11 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fetch('/get_remaining_time')
         .then(response => response.text())
-        .then(seconds => {
-            let sec = parseInt(seconds);
-
+        .then(secondsStr => {
+            let sec = parseInt(secondsStr);
             if (sec <= 0) {
-                // Time's up
                 countdownEl.innerText = "Time's up!";
                 countdownEl.classList.remove('low-time');
                 return; // Stop updates
@@ -35,15 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // If it's under an hour, display "M:SS"
             if (hrs < 1) {
-                // zero-pad seconds
-                let secsStr = secs.toString().padStart(2, '0');
-                countdownEl.innerText = mins + ":" + secsStr;
+                const secsPadded = secs.toString().padStart(2, '0');
+                countdownEl.innerText = mins + ":" + secsPadded;
             } else {
                 // Otherwise, display "Xh Xm Xs"
                 countdownEl.innerText = hrs + ":" + mins + ":" + secs;
             }
 
-            // If less than or equal to 15 minutes, turn red
+            // If 15 minutes or less remain, turn timer red
             if ((hrs * 3600 + mins * 60 + secs) <= 900) {
                 countdownEl.classList.add('low-time');
             } else {
@@ -56,12 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCountdown();
 });
 
-/**
- * Launch a brief confetti animation.
- */
 function launchConfetti() {
-    var duration = 3 * 1000;
-    var end = Date.now() + duration;
+    const duration = 3 * 1000;
+    const end = Date.now() + duration;
 
     (function frame() {
         confetti({
