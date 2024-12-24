@@ -6,10 +6,10 @@ app = Flask(__name__)
 tasks = []
 deadline = None
 
-# We'll store these two times so we know when the user "started"
-# and can compute the intervals for each completed task
-countdown_start_time = None
-last_completion_time = None
+# Timestamps
+countdown_start_time = None      # The moment user pressed "Start Countdown"
+last_completion_time = None      # The moment user completed the last task
+spent_time_start_time = None     # The moment from which we measure the secondary/spent timer
 
 def get_time_increments():
     """Generate 15-minute increments for the deadline dropdown."""
@@ -68,10 +68,7 @@ def format_deadline(d):
     return f"{display_hour}:{minute:02d} {ampm}"
 
 def format_lap_time(seconds):
-    """
-    Convert an integer number of seconds into a quick "Xh Xm Xs" format,
-    or "Mm Ss" if under an hour, etc. Adjust to taste.
-    """
+    """Convert an integer number of seconds into e.g. 'Xh Xm Xs' or 'Mm Ss'."""
     if seconds < 60:
         return f"{seconds}s"
     hrs = seconds // 3600
@@ -87,7 +84,7 @@ def format_lap_time(seconds):
 def index():
     increments = get_time_increments()
     # Check if all tasks are complete
-    all_done = (len(tasks) > 0) and all(t['completed'] for t in tasks)
+    all_done = len(tasks) > 0 and all(t['completed'] for t in tasks)
     deadline_str = format_deadline(deadline)
     return render_template(
         'index.html',
@@ -104,29 +101,36 @@ def add_task():
         tasks.append({
             'text': task_text,
             'completed': False,
-            'lap_time': None  # Will fill when user completes the task
+            'lap_time': None
         })
     return redirect(url_for('index'))
 
 @app.route('/complete/<int:task_id>')
 def complete_task(task_id):
-    global last_completion_time
+    """
+    Toggle the task’s completion. 
+    If completing it, compute the lap time since last completion, 
+    then reset the 'spent_time_start_time' to now 
+    so that the next “spent time” starts from 0.
+    """
+    global last_completion_time, spent_time_start_time
     if 0 <= task_id < len(tasks):
         task = tasks[task_id]
-        # Toggle logic
         if not task['completed']:
             # Mark as completed
             task['completed'] = True
             now = datetime.now()
-            # If no last_completion_time set yet, or we haven't started the countdown
-            # we can't calculate. But normally, this is set when we do set_deadline.
             if last_completion_time is not None:
                 diff = (now - last_completion_time).total_seconds()
             else:
                 diff = 0
             task['lap_time'] = format_lap_time(int(diff))
-            # Update the last completion time
+
+            # Update last completion time
             last_completion_time = now
+            # Reset the spent-time start
+            spent_time_start_time = now
+
         else:
             # Unmark as completed
             task['completed'] = False
@@ -142,11 +146,10 @@ def delete_task(task_id):
 @app.route('/set_deadline', methods=['POST'])
 def set_deadline():
     """
-    When setting a deadline, we also record the 'start' time.
-    The first completed task is measured vs. this start time,
-    and subsequent tasks are measured vs. the last completion time.
+    Set a deadline, record the “countdown_start_time” for the main timer,
+    and also set the “spent_time_start_time” to measure time spent on the first task.
     """
-    global deadline, countdown_start_time, last_completion_time
+    global deadline, countdown_start_time, last_completion_time, spent_time_start_time
     time_input = request.form.get('deadline', '').strip()
     if time_input:
         try:
@@ -169,30 +172,47 @@ def set_deadline():
                 deadline_candidate += timedelta(days=1)
             deadline = deadline_candidate
 
-            # Record the start times
-            countdown_start_time = datetime.now()
-            last_completion_time = countdown_start_time
+            countdown_start_time = now
+            last_completion_time = now
+            spent_time_start_time = now
         except:
             pass
     return redirect(url_for('index'))
 
 @app.route('/reset_deadline', methods=['POST'])
 def reset_deadline():
-    global deadline, countdown_start_time, last_completion_time
-    # Clear everything
+    """
+    Clears the deadline and resets all related times.
+    """
+    global deadline, countdown_start_time, last_completion_time, spent_time_start_time
     deadline = None
     countdown_start_time = None
     last_completion_time = None
+    spent_time_start_time = None
     return redirect(url_for('index'))
 
 @app.route('/get_remaining_time')
 def get_remaining_time():
+    """Returns how many seconds remain until the deadline, or '0' if none."""
     if deadline:
         now = datetime.now()
         diff = deadline - now
         seconds_left = max(int(diff.total_seconds()), 0)
         return str(seconds_left)
     return '0'
+
+@app.route('/get_spent_time')
+def get_spent_time():
+    """
+    Returns how many seconds have passed since the last task completion (or since countdown started).
+    If spent_time_start_time is None, returns 0.
+    """
+    global spent_time_start_time
+    if spent_time_start_time is None:
+        return '0'
+    now = datetime.now()
+    diff = now - spent_time_start_time
+    return str(int(diff.total_seconds()))
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
-    <title>Yang's Task Tracker</title>
+    <title>Daily Task Tracker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Yang's Task Tracker</h1>
+        <h1>Daily Task Tracker</h1>
         
         {% if deadline_str %}
         <div class="deadline-display">
@@ -24,7 +24,22 @@
         </div>
         {% endif %}
         
-        <div id="countdown" class="countdown">--:--:--</div>
+        <!-- Main countdown timer -->
+        <div class="bordered-box">
+            <div class="timeremaining-display">
+                Time Remaining:
+            </div>
+            <div id="countdown" class="countdown">--:--:--</div>
+        </div>  
+
+        <!-- Secondary “spent time” timer -->
+        <div class="bordered-box">
+            <div class="currenttask-display">
+                Time Spent on Current Task:
+            </div>
+            <div id="spent-time" class="spent-time">0:00</div>
+        </div>
+
         
         <!-- Add Task Form -->
         <form action="{{ url_for('add_task') }}" method="post" class="task-form">
@@ -45,12 +60,12 @@
             <tbody>
                 {% for task in tasks %}
                 <tr>
-                    <!-- TASK TEXT CELL -->
+                    <!-- Task text -->
                     <td class="task-cell"
                         style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'white' if task.completed else 'black' }}">
                         {{ task.text }}
                     </td>
-                    <!-- TIME (lap) CELL -->
+                    <!-- Lap time -->
                     <td>
                         {% if task.lap_time %}
                             {{ task.lap_time }}
@@ -58,13 +73,13 @@
                             -
                         {% endif %}
                     </td>
-                    <!-- COMPLETE BUTTON CELL -->
+                    <!-- Complete button -->
                     <td>
                         <a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">
                             {{ 'Undo' if task.completed else 'Complete' }}
                         </a>
                     </td>
-                    <!-- DELETE BUTTON CELL -->
+                    <!-- Delete button -->
                     <td>
                         <a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a>
                     </td>
