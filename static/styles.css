@@ -185,6 +185,14 @@ h5 {
     background: #e93232;
 }
 
+.cleartasks-btn {
+    background: #266cc9;
+}
+
+.cleartasks-btn:hover {
+    background: #419ff8;
+}
+
 .deadline-form label {
     margin-right: 10px;
 }
@@ -226,3 +234,18 @@ h5 {
 .right-align {
     text-align: right;
 }
+
+/* Inline Buttons */
+
+.button-container {
+    display: flex;           /* Use flexbox for layout */
+    gap: 10px;               /* Add space between buttons */
+    justify-content: center; /* Center align the buttons */
+    margin-bottom: 20px;     /* Add spacing below the buttons */
+}
+
+.inline-form {
+    margin: 0;               /* Remove default margin around forms */
+}
+
+

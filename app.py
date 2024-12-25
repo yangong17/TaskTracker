@@ -146,6 +146,12 @@ def index():
         format_lap_time=format_lap_time
     )
 
+# Clear tasks
+@app.route('/clear_tasks', methods=['POST'])
+def clear_tasks():
+    global tasks
+    tasks.clear()  # Empties the tasks list
+    return redirect(url_for('index'))
 
 @app.route('/add', methods=['POST'])
 def add_task():
@@ -272,7 +278,6 @@ def delete_from_log(task_name):
         del task_log[task_name]
         save_log()
     return redirect(url_for('index'))
-
 
 
 if __name__ == "__main__":

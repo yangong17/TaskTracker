@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
-    <title>Daily Task Tracker</title>
+    <title>Yang's Task Tracker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
@@ -17,14 +17,22 @@
 <body>
     <div class="container">
 
-        <!-- Reset Deadline Form -->
-        <form action="{{ url_for('reset_deadline') }}" method="post" class="reset-form">
-            <button type="submit" class="btn reset-btn">Reset</button>
-        </form>
+        <div class="button-container">
+            <!-- Reset Deadline Form -->
+            <form action="{{ url_for('reset_deadline') }}" method="post" class="inline-form">
+                <button type="submit" class="btn reset-btn">Reset Timer</button>
+            </form>
+        
+            <!-- Clear Tasks Form -->
+            <form action="{{ url_for('clear_tasks') }}" method="post" class="inline-form">
+                <button type="submit" class="btn cleartasks-btn">Clear Tasks</button>
+            </form>
+        </div>
+
 
         <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
 
-        <h1>Daily Task Tracker</h1>
+        <h1>Yang's Task Tracker</h1>
         
         {% if deadline_str %}
         <div class="deadline-display">
@@ -47,7 +55,6 @@
             </div>
             <div id="spent-time" class="spent-time">0:00</div>
         </div>
-
         
         <!-- Add Task Form -->
         <form action="{{ url_for('add_task') }}" method="post" class="task-form">
@@ -55,19 +62,21 @@
             <button type="submit" class="btn add-btn">Add Task</button>
         </form>
 
-        <!-- Set Deadline -->
-        <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
-            <label for="deadline-select">Deadline:</label>
-            <select name="deadline" id="deadline-select" class="dropdown">
-                {% for inc in increments %}
-                <option value="{{ inc }}">{{ inc }}</option>
-                {% endfor %}
-            </select>
-            <div class="right-align">
-                <button type="submit" class="btn deadline-btn" style="float: right;">Start Countdown</button>
-            </div>
-        </form>
-
+        <!-- Deadline and Start Countdown -->
+        <div class="button-container">
+            <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
+                <label for="deadline-select">Deadline:</label>
+                <select name="deadline" id="deadline-select" class="dropdown">
+                    {% for inc in increments %}
+                    <option value="{{ inc }}">{{ inc }}</option>
+                    {% endfor %}
+                </select>
+                
+                <div class="right-align">
+                    <button type="submit" class="btn deadline-btn" style="float: right;">Start Countdown</button>
+                </div>
+            </form>
+        </div>
 
 
         <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
@@ -113,6 +122,8 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
 
 
         <!-- Previous Tasks Log (same style as main table) -->
