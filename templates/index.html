@@ -16,6 +16,14 @@
 </head>
 <body>
     <div class="container">
+
+        <!-- Reset Deadline Form -->
+        <form action="{{ url_for('reset_deadline') }}" method="post" class="reset-form">
+            <button type="submit" class="btn reset-btn">Reset</button>
+        </form>
+
+        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+
         <h1>Daily Task Tracker</h1>
         
         {% if deadline_str %}
@@ -47,7 +55,25 @@
             <button type="submit" class="btn add-btn">Add Task</button>
         </form>
 
+        <!-- Set Deadline -->
+        <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
+            <label for="deadline-select">Deadline:</label>
+            <select name="deadline" id="deadline-select" class="dropdown">
+                {% for inc in increments %}
+                <option value="{{ inc }}">{{ inc }}</option>
+                {% endfor %}
+            </select>
+            <div class="right-align">
+                <button type="submit" class="btn deadline-btn" style="float: right;">Start Countdown</button>
+            </div>
+        </form>
+
+
+
+        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+
         <!-- Tasks Table -->
+        <h2>Current Tasks</h2>
         <table class="task-table">
             <thead>
                 <tr>
@@ -87,22 +113,6 @@
                 {% endfor %}
             </tbody>
         </table>
-
-        <!-- Set Deadline Form -->
-        <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
-            <label for="deadline-select">Deadline:</label>
-            <select name="deadline" id="deadline-select" class="dropdown">
-                {% for inc in increments %}
-                <option value="{{ inc }}">{{ inc }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="btn deadline-btn">Start Countdown</button>
-        </form>
-
-        <!-- Reset Deadline Form -->
-        <form action="{{ url_for('reset_deadline') }}" method="post" class="reset-form">
-            <button type="submit" class="btn reset-btn">Reset Countdown</button>
-        </form>
 
 
         <!-- Previous Tasks Log (same style as main table) -->
