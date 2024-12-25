@@ -21,19 +21,29 @@ document.addEventListener('DOMContentLoaded', () => {
             spentTimeEl.innerText = "0:00";
             return;
         }
-
+    
         fetch('/get_remaining_time')
             .then(r => r.text())
             .then(secondsStr => {
                 let sec = parseInt(secondsStr);
                 if (sec <= 0) {
                     countdownEl.innerText = "Time's up!";
+                    countdownEl.classList.remove('low-time');
                 } else {
+                    // Calculate hours, minutes, seconds
                     let hrs = Math.floor(sec / 3600);
                     sec %= 3600;
                     let mins = Math.floor(sec / 60);
                     let secs = sec % 60;
-
+    
+                    // Toggle the red color when <= 900 seconds (15 minutes)
+                    if (sec + mins * 60 + hrs * 3600 <= 900) {
+                        countdownEl.classList.add('low-time');
+                    } else {
+                        countdownEl.classList.remove('low-time');
+                    }
+    
+                    // Format the display
                     if (hrs < 1) {
                         const secsPadded = secs.toString().padStart(2, '0');
                         countdownEl.innerText = mins + ":" + secsPadded;
@@ -42,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-
+    
         // 2) Spent time (time since last completion or countdown start)
         fetch('/get_spent_time')
             .then(r => r.text())
@@ -56,17 +66,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 let remainder = spent % 3600;
                 let mins = Math.floor(remainder / 60);
                 let secs = remainder % 60;
-
+    
                 // If under an hour => M:SS
                 if (hrs < 1) {
-                    spentTimeEl.innerText = mins + ":" + secs.toString().padStart(2,'0');
+                    spentTimeEl.innerText = mins + ":" + secs.toString().padStart(2, '0');
                 } else {
-                    const minsStr = mins.toString().padStart(2,'0');
-                    const secsStr = secs.toString().padStart(2,'0');
+                    const minsStr = mins.toString().padStart(2, '0');
+                    const secsStr = secs.toString().padStart(2, '0');
                     spentTimeEl.innerText = hrs + ":" + minsStr + ":" + secsStr;
                 }
             });
     }
+    
 });
 
 /**
