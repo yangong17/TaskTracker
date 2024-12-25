@@ -188,3 +188,37 @@ h5 {
 .deadline-form label {
     margin-right: 10px;
 }
+
+/* Log Table for completed tasks (fastest times) */
+.task-log-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: #fff;
+}
+
+.task-log-table th,
+.task-log-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #ccc;
+    font-size: 15px;
+}
+
+.task-log-table th {
+    background: #f7f7f7;
+}
+
+/* Optional button styling for "Add" in the log */
+.add-log-btn {
+    background: #17a2b8; /* teal-ish color */
+    color: #fff;
+    border-radius: 4px;
+    padding: 6px 10px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.add-log-btn:hover {
+    background: #138496;
+}

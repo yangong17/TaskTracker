@@ -1,15 +1,58 @@
+import csv
+import os
 from flask import Flask, render_template, request, redirect, url_for
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
+# ====== Active tasks ======
 tasks = []
 deadline = None
 
-# Timestamps
-countdown_start_time = None      # The moment user pressed "Start Countdown"
-last_completion_time = None      # The moment user completed the last task
-spent_time_start_time = None     # The moment from which we measure the secondary/spent timer
+# Timestamps to track various countdowns
+countdown_start_time = None
+last_completion_time = None
+spent_time_start_time = None
+
+# ====== Log Storage ======
+LOG_FILENAME = "task_log.csv"
+task_log = {}  # { "Task name": {"fastest_time": 123}, ... }
+
+def load_log():
+    """Load the task_log from CSV if it exists."""
+    global task_log
+    if os.path.exists(LOG_FILENAME):
+        with open(LOG_FILENAME, 'r', newline='') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) == 2:
+                    task_name, fastest_str = row
+                    task_log[task_name] = {"fastest_time": int(fastest_str)}
+
+def save_log():
+    """Save the current task_log to CSV."""
+    with open(LOG_FILENAME, 'w', newline='') as f:
+        writer = csv.writer(f)
+        for name, data in task_log.items():
+            writer.writerow([name, data["fastest_time"]])
+            
+def update_fastest_time(task_name, lap_seconds):
+    """
+    Compare lap_seconds to existing fastest_time for task_name in task_log.
+    If it's faster, update and save.
+    """
+    global task_log
+    if task_name not in task_log:
+        # brand new record
+        task_log[task_name] = {"fastest_time": lap_seconds}
+        save_log()
+    else:
+        # if new time is faster, update
+        if lap_seconds < task_log[task_name]["fastest_time"]:
+            task_log[task_name]["fastest_time"] = lap_seconds
+            save_log()
+
+# ====== Utility & Timer Functions ======
 
 def get_time_increments():
     """Generate 15-minute increments for the deadline dropdown."""
@@ -24,7 +67,7 @@ def get_time_increments():
 
     increments = []
     h, m = hour, minute
-    for _ in range(48):  # 48 increments of 15 mins => 12 hours
+    for _ in range(48):  # 48 increments => 12 hours
         display_hour_24 = h % 24
         if display_hour_24 == 0:
             display_hour_12 = 12
@@ -49,7 +92,7 @@ def get_time_increments():
     return increments
 
 def format_deadline(d):
-    """Display a user-friendly string for the stored deadline."""
+    """Return a user-friendly HH:MM AM/PM string for the deadline."""
     if d is None:
         return None
     hour_24 = d.hour
@@ -68,7 +111,10 @@ def format_deadline(d):
     return f"{display_hour}:{minute:02d} {ampm}"
 
 def format_lap_time(seconds):
-    """Convert an integer number of seconds into e.g. 'Xh Xm Xs' or 'Mm Ss'."""
+    """
+    Convert an integer number of seconds into e.g. 'Xh Xm Xs' or 'Mm Ss'.
+    90 => '1m 30s'; 3700 => '1h 1m 40s'
+    """
     if seconds < 60:
         return f"{seconds}s"
     hrs = seconds // 3600
@@ -80,19 +126,26 @@ def format_lap_time(seconds):
     else:
         return f"{mins}m {secs}s"
 
+
+# ====== Routes ======
+
 @app.route('/')
 def index():
     increments = get_time_increments()
-    # Check if all tasks are complete
-    all_done = len(tasks) > 0 and all(t['completed'] for t in tasks)
+    all_done = (len(tasks) > 0) and all(t['completed'] for t in tasks)
     deadline_str = format_deadline(deadline)
+
+    # Pass format_lap_time into the template so Jinja can call it
     return render_template(
         'index.html',
         tasks=tasks,
         increments=increments,
         all_done=all_done,
-        deadline_str=deadline_str
+        deadline_str=deadline_str,
+        task_log=task_log,
+        format_lap_time=format_lap_time
     )
+
 
 @app.route('/add', methods=['POST'])
 def add_task():
@@ -105,14 +158,9 @@ def add_task():
         })
     return redirect(url_for('index'))
 
+
 @app.route('/complete/<int:task_id>')
 def complete_task(task_id):
-    """
-    Toggle the task’s completion. 
-    If completing it, compute the lap time since last completion, 
-    then reset the 'spent_time_start_time' to now 
-    so that the next “spent time” starts from 0.
-    """
     global last_completion_time, spent_time_start_time
     if 0 <= task_id < len(tasks):
         task = tasks[task_id]
@@ -124,18 +172,20 @@ def complete_task(task_id):
                 diff = (now - last_completion_time).total_seconds()
             else:
                 diff = 0
-            task['lap_time'] = format_lap_time(int(diff))
+            lap_seconds = int(diff)
+            task['lap_time'] = format_lap_time(lap_seconds)
 
-            # Update last completion time
             last_completion_time = now
-            # Reset the spent-time start
             spent_time_start_time = now
 
+            # Update the log with new possible fastest time
+            update_fastest_time(task['text'], lap_seconds)
         else:
             # Unmark as completed
             task['completed'] = False
             task['lap_time'] = None
     return redirect(url_for('index'))
+
 
 @app.route('/delete/<int:task_id>')
 def delete_task(task_id):
@@ -143,12 +193,9 @@ def delete_task(task_id):
         del tasks[task_id]
     return redirect(url_for('index'))
 
+
 @app.route('/set_deadline', methods=['POST'])
 def set_deadline():
-    """
-    Set a deadline, record the “countdown_start_time” for the main timer,
-    and also set the “spent_time_start_time” to measure time spent on the first task.
-    """
     global deadline, countdown_start_time, last_completion_time, spent_time_start_time
     time_input = request.form.get('deadline', '').strip()
     if time_input:
@@ -179,11 +226,9 @@ def set_deadline():
             pass
     return redirect(url_for('index'))
 
+
 @app.route('/reset_deadline', methods=['POST'])
 def reset_deadline():
-    """
-    Clears the deadline and resets all related times.
-    """
     global deadline, countdown_start_time, last_completion_time, spent_time_start_time
     deadline = None
     countdown_start_time = None
@@ -191,9 +236,9 @@ def reset_deadline():
     spent_time_start_time = None
     return redirect(url_for('index'))
 
+
 @app.route('/get_remaining_time')
 def get_remaining_time():
-    """Returns how many seconds remain until the deadline, or '0' if none."""
     if deadline:
         now = datetime.now()
         diff = deadline - now
@@ -201,12 +246,9 @@ def get_remaining_time():
         return str(seconds_left)
     return '0'
 
+
 @app.route('/get_spent_time')
 def get_spent_time():
-    """
-    Returns how many seconds have passed since the last task completion (or since countdown started).
-    If spent_time_start_time is None, returns 0.
-    """
     global spent_time_start_time
     if spent_time_start_time is None:
         return '0'
@@ -214,5 +256,25 @@ def get_spent_time():
     diff = now - spent_time_start_time
     return str(int(diff.total_seconds()))
 
+
+@app.route('/add_task_from_log/<task_name>')
+def add_task_from_log(task_name):
+    tasks.append({
+        'text': task_name,
+        'completed': False,
+        'lap_time': None
+    })
+    return redirect(url_for('index'))
+
+@app.route('/delete_from_log/<task_name>')
+def delete_from_log(task_name):
+    if task_name in task_log:
+        del task_log[task_name]
+        save_log()
+    return redirect(url_for('index'))
+
+
+
 if __name__ == "__main__":
+    load_log()  # Ensure we load the CSV before app.run
     app.run(debug=True)
