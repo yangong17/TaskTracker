@@ -24,10 +24,12 @@ def load_log():
     if os.path.exists(LOG_FILENAME):
         with open(LOG_FILENAME, 'r', newline='') as f:
             reader = csv.reader(f)
+            next(reader)  # Skip the header row
             for row in reader:
                 if len(row) == 2:
                     task_name, fastest_str = row
                     task_log[task_name] = {"fastest_time": int(fastest_str)}
+        task_log = dict(sorted(task_log.items()))  # Sort alphabetically by keys
 
 def save_log():
     """Save the current task_log to CSV."""
