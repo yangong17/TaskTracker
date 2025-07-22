@@ -228,7 +228,7 @@
 
             <!-- Tasks Table -->
             <div class="table-header">
-                <h2 style="display: inline-block;">Current Tasks</h2>
+                <h2 style="display: inline-block;">🎯 Current Tasks</h2>
                 <div class="sort-buttons">
                     <form action="{{ url_for('sort_priority_asc') }}" method="post" class="inline-form">
                         <button type="submit" class="btn sort-btn">Sort 1→5</button>
@@ -325,40 +325,8 @@
             <!------------ LINE BREAK ------------>
             <hr>
 
-            <!-- Previous Tasks Log (same style as main table) -->
-            <h2>Previous Tasks Log</h2>
-            <table class="task-table">
-                <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Quickest Time</th>
-                        <th>Add Task</th>
-                        <th>Delete</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for name, data in task_log.items() %}
-                    <tr>
-                        <td>{{ name }}</td>
-                        <td>{{ format_lap_time(data["fastest_time"]) }}</td>
-                        <td>
-                            <a href="{{ url_for('add_task_from_log', task_name=name) }}" class="btn">Add</a>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('delete_from_log', task_name=name) }}" class="btn delete-btn">
-                                Delete
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-
-            <!------------ LINE BREAK ------------>
-            <hr>
-
             <!-- Favorites Table -->
-            <h2>Favorites</h2>
+            <h2>💖 Favorites</h2>
             
             <!-- Add Favorite Form -->
             <form action="{{ url_for('add_favorite') }}" method="post" class="task-form">
@@ -397,6 +365,39 @@
                 {% endif %}
                 </tbody>
             </table>
+
+            <!------------ LINE BREAK ------------>
+            <hr>
+
+            <!-- Previous Tasks Log (same style as main table) -->
+            <h2>📋 Previous Tasks Log</h2>
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Quickest Time</th>
+                        <th>Add Task</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for name, data in task_log.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ format_lap_time(data["fastest_time"]) }}</td>
+                        <td>
+                            <a href="{{ url_for('add_task_from_log', task_name=name) }}" class="btn">Add</a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('delete_from_log', task_name=name) }}" class="btn delete-btn">
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
         {% endif %}
     </div>
 </body>
