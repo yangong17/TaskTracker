@@ -35,6 +35,7 @@ class TaskTrackerApp {
         
         // Load initial data
         this.loadTasks();
+        this.loadInitialDeadlineIncrements();
     }
     
     cacheElements() {
@@ -371,7 +372,17 @@ class TaskTrackerApp {
             const taskCell = taskRow.querySelector('.task-cell');
             
             if (data.task.completed) {
+                // Add completed class and remove overdue classes
                 taskCell.classList.add('task-completed');
+                taskCell.classList.remove('task-overdue');
+                taskRow.classList.remove('overdue-task');
+                
+                // Remove overdue styling from countdown if it exists
+                const countdownDiv = taskRow.querySelector('.task-countdown');
+                if (countdownDiv) {
+                    countdownDiv.classList.remove('overdue-text');
+                }
+                
                 button.textContent = 'Undo';
                 if (data.lap_time) {
                     const timeCell = taskRow.children[3];
@@ -382,6 +393,14 @@ class TaskTrackerApp {
                 button.textContent = 'Complete';
                 const timeCell = taskRow.children[3];
                 timeCell.textContent = '-';
+                
+                // Re-check if task should be marked as overdue
+                const deadlineStr = taskRow.querySelector('.task-countdown')?.getAttribute('data-deadline');
+                if (deadlineStr && new Date(deadlineStr) < new Date()) {
+                    taskCell.classList.add('task-overdue');
+                    taskRow.classList.add('overdue-task');
+                    taskRow.querySelector('.task-countdown')?.classList.add('overdue-text');
+                }
             }
             
             // Update local state
@@ -427,6 +446,12 @@ class TaskTrackerApp {
         const row = this.createTaskRow(task, index);
         this.elements.taskTable.appendChild(row);
         this.animateRowAddition(row);
+        
+        // Ensure priority select styling is applied
+        const prioritySelect = row.querySelector('.priority-select');
+        if (prioritySelect) {
+            this.updatePrioritySelectBorder(prioritySelect);
+        }
     }
     
     createTaskRow(task, index) {
@@ -451,7 +476,7 @@ class TaskTrackerApp {
                 <form class="inline-form">
                     <select name="task_deadline" class="deadline-select">
                         <option value="">No deadline</option>
-                        <!-- Deadline options will be populated dynamically -->
+                        ${this.generateDeadlineOptions(task.task_deadline || '')}
                     </select>
                 </form>
                 ${task.task_deadline ? `<div class="task-countdown ${isOverdue ? 'overdue-text' : ''}" data-deadline="${task.task_deadline}">--:--</div>` : ''}
@@ -569,6 +594,94 @@ class TaskTrackerApp {
     }
     
     // ====== MISSING METHODS ======
+    
+    refreshTaskDeadlineSelects(taskDeadlineIncrements) {
+        if (!taskDeadlineIncrements) return;
+        
+        // Store the increments for later use
+        this.state.taskDeadlineIncrements = taskDeadlineIncrements;
+        
+        // Update all existing deadline selects
+        const deadlineSelects = document.querySelectorAll('.deadline-select');
+        deadlineSelects.forEach(select => {
+            const currentValue = select.value;
+            
+            // Clear existing options except "No deadline"
+            select.innerHTML = '<option value="">No deadline</option>';
+            
+            // Add new options
+            taskDeadlineIncrements.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                if (option.value === currentValue) {
+                    optionElement.selected = true;
+                }
+                select.appendChild(optionElement);
+            });
+        });
+    }
+    
+    generateDeadlineOptions(selectedValue = '') {
+        if (!this.state.taskDeadlineIncrements) {
+            // If increments aren't loaded yet, return a placeholder
+            // The options will be populated when loadInitialDeadlineIncrements() completes
+            return '<!-- Options will be populated when increments are loaded -->';
+        }
+        
+        return this.state.taskDeadlineIncrements.map(option => {
+            const selected = option.value === selectedValue ? 'selected' : '';
+            return `<option value="${this.escapeHtml(option.value)}" ${selected}>${this.escapeHtml(option.text)}</option>`;
+        }).join('');
+    }
+    
+    async loadInitialDeadlineIncrements() {
+        try {
+            const data = await this.makeRequest('/api/tasks', { skipLoading: true });
+            if (data && data.task_deadline_increments) {
+                console.log('Loaded task deadline increments:', data.task_deadline_increments.length, 'options');
+                this.refreshTaskDeadlineSelects(data.task_deadline_increments);
+                
+                // Also check if there are any empty deadline dropdowns that need populating
+                this.populateEmptyDeadlineDropdowns();
+            } else {
+                console.warn('No task deadline increments received from server');
+            }
+        } catch (error) {
+            console.error('Error loading deadline increments:', error);
+        }
+    }
+    
+    populateEmptyDeadlineDropdowns() {
+        // Find any deadline dropdowns that only have the "No deadline" option
+        const emptyDropdowns = document.querySelectorAll('.deadline-select');
+        emptyDropdowns.forEach(dropdown => {
+            if (dropdown.options.length <= 1) {
+                // This dropdown needs to be populated
+                this.refreshSingleDeadlineSelect(dropdown);
+            }
+        });
+    }
+    
+    refreshSingleDeadlineSelect(select) {
+        if (!this.state.taskDeadlineIncrements || !select) return;
+        
+        const currentValue = select.value;
+        
+        // Clear existing options except "No deadline"
+        select.innerHTML = '<option value="">No deadline</option>';
+        
+        // Add new options
+        this.state.taskDeadlineIncrements.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.text;
+            if (option.value === currentValue) {
+                optionElement.selected = true;
+            }
+            select.appendChild(optionElement);
+        });
+    }
     
     async addFavorite() {
         const favoriteText = this.elements.favoriteInput.value.trim();
@@ -899,6 +1012,17 @@ class TaskTrackerApp {
         const now = new Date();
         
         taskCountdowns.forEach(countdown => {
+            // Skip if this task is completed
+            const taskRow = countdown.closest('tr');
+            const taskCell = taskRow.querySelector('.task-cell');
+            if (taskCell.classList.contains('task-completed')) {
+                countdown.innerText = "Completed";
+                countdown.style.color = '#fff';
+                countdown.style.backgroundColor = 'transparent';
+                countdown.style.borderColor = 'transparent';
+                return;
+            }
+            
             const deadlineStr = countdown.getAttribute('data-deadline');
             if (!deadlineStr) return;
             

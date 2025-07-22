@@ -164,7 +164,7 @@ def save_log():
             writer.writerow([name, data["fastest_time"]])
 
 def load_favorites():
-    """Load the favorites list from CSV if it exists."""
+    """Load the favorites list from CSV if it exists. If not, create an empty file."""
     global favorites
     if os.path.exists(FAVORITES_FILENAME):
         with open(FAVORITES_FILENAME, 'r', newline='') as f:
@@ -172,6 +172,9 @@ def load_favorites():
             favorites = [row[0] for row in reader if row]
     else:
         favorites = []
+        # Create an empty favorites.csv file
+        with open(FAVORITES_FILENAME, 'w', newline='') as f:
+            pass
 
 def save_favorites():
     """Save the current favorites list to CSV."""

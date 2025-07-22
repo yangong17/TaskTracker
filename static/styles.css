@@ -668,14 +668,42 @@ label {
     transition: all 0.3s ease;
 }
 
+/* Ensure completed tasks are always green, regardless of row parity */
 .task-cell.task-completed {
-    background: var(--success-color);
-    color: #fff;
+    background: var(--success-color) !important;
+    color: #fff !important;
 }
 
-.task-cell.task-completed.task-overdue {
-    background: var(--danger-color);
-    color: var(--text-primary);
+/* Prevent overdue styling on completed tasks */
+.task-cell.task-completed.task-overdue,
+.task-cell.task-completed + td,
+.task-cell.task-completed ~ td {
+    background: var(--success-color) !important;
+    color: #fff !important;
+}
+
+/* Remove overdue styling when task is completed */
+tr:has(.task-cell.task-completed) {
+    background: none !important;
+    border-left: none !important;
+}
+
+tr:has(.task-cell.task-completed) .task-countdown {
+    color: #fff !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+}
+
+/* Ensure overdue styling doesn't affect completed tasks */
+.overdue-task:has(.task-cell.task-completed) {
+    background-color: transparent !important;
+    border-left: none !important;
+}
+
+.task-countdown.overdue-text:has(+ .task-cell.task-completed) {
+    color: inherit !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
 }
 
 .dropdown {
@@ -683,7 +711,7 @@ label {
     font-size: 14px;
     margin-right: 10px;
     border-radius: 4px;
-    border: 1px solid #ccc;
+    border: 1px #ccc;
 }
 
 /* Base button styling */
