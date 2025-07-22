@@ -44,7 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/get_pomodoro_time')
             .then(r => r.json())
             .then(data => {
-                const { remaining_seconds, is_work_session, is_running, session_complete, session_changed, previous_session_was_work } = data;
+                const { remaining_seconds, is_work_session, is_running, session_complete, session_changed, previous_session_was_work, work_sessions_completed, rest_sessions_completed } = data;
+                
+                // Update session counters if they're available in the response
+                if (work_sessions_completed !== undefined) {
+                    const workCountEl = document.getElementById('work-sessions-count');
+                    if (workCountEl) workCountEl.innerText = work_sessions_completed;
+                }
+                if (rest_sessions_completed !== undefined) {
+                    const restCountEl = document.getElementById('rest-sessions-count');
+                    if (restCountEl) restCountEl.innerText = rest_sessions_completed;
+                }
                 
                 // Handle session transitions
                 if (session_changed && session_complete) {
@@ -58,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Show browser notification
                     showBrowserNotification(
                         previous_session_was_work ? "Work session complete!" : "Rest break complete!",
-                        previous_session_was_work ? "Time for a break! 🌱 Click Start to begin rest." : "Ready to get back to work! 💪 Click Start to begin work."
+                        previous_session_was_work ? "Time for a break! 🌱 Rest session starting..." : "Break's over! 💪 Work session starting..."
                     );
                     
                     // Update UI for new session type
@@ -67,33 +77,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Show session transition message briefly
                     if (previous_session_was_work) {
                         pomodoroTimerEl.innerText = "Break Time!";
-                        sessionTypeEl.innerText = "Work Complete! Time for Rest";
+                        sessionTypeEl.innerText = "Work Complete! Starting Rest...";
                     } else {
                         pomodoroTimerEl.innerText = "Work Time!";
-                        sessionTypeEl.innerText = "Rest Complete! Time for Work";
+                        sessionTypeEl.innerText = "Rest Complete! Starting Work...";
                     }
                     
                     pomodoroTimerEl.className = "pomodoro-countdown completed";
                     progressCircle.style.strokeDashoffset = 0; // Complete the circle
                     
-                    // After 3 seconds, show normal session display
+                    // After 2 seconds, switch to normal countdown display (timer is already running)
                     setTimeout(() => {
                         updateSessionTypeDisplay(is_work_session, sessionTypeEl, progressCircle);
                         
-                        // Get the correct default time for the new session
-                        const workMinutes = parseInt(document.querySelector('#work_minutes')?.value) || 25;
-                        const restMinutes = parseInt(document.querySelector('#rest_minutes')?.value) || 5;
-                        const defaultMinutes = is_work_session ? workMinutes : restMinutes;
-                        const defaultTime = `${defaultMinutes.toString().padStart(2, '0')}:00`;
-                        
-                        pomodoroTimerEl.innerText = defaultTime;
+                        // The timer is already running, so just display the current time normally
+                        // The next updatePomodoroTimer call will show the proper countdown
                         pomodoroTimerEl.className = "pomodoro-countdown";
-                        
-                        // Reset progress circle
-                        const radius = 120;
-                        const circumference = 2 * Math.PI * radius;
-                        progressCircle.style.strokeDashoffset = circumference;
-                    }, 3000);
+                    }, 2000);
                     
                     return;
                 }

@@ -604,6 +604,57 @@ h5 {
     display: none; /* Hide old timer styles */
 }
 
+/* Session Counters */
+.session-counters {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 30px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px solid #dee2e6;
+}
+
+.counter-item {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.counter-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.counter-value {
+    font-size: 32px;
+    font-weight: 700;
+    font-family: 'Open Sans', monospace;
+    color: #007BFF;
+    background: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 2px solid #007BFF;
+    min-width: 60px;
+    text-align: center;
+}
+
+.counter-item:first-child .counter-value {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.counter-item:last-child .counter-value {
+    color: #28a745;
+    border-color: #28a745;
+}
+
 /* Pomodoro Controls */
 .pomodoro-controls {
     display: flex;
@@ -729,6 +780,16 @@ h5 {
     .pomodoro-controls {
         flex-direction: column;
         gap: 15px;
+    }
+    
+    .session-counters {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .counter-value {
+        font-size: 24px;
+        padding: 8px 16px;
     }
     
     .start-btn, .pause-btn, .reset-btn {

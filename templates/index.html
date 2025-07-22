@@ -75,6 +75,18 @@
                     </div>
                 </div>
 
+                <!-- Session Counter Display -->
+                <div class="session-counters">
+                    <div class="counter-item">
+                        <span class="counter-label">Work Sessions:</span>
+                        <span class="counter-value" id="work-sessions-count">{{ work_sessions_completed }}</span>
+                    </div>
+                    <div class="counter-item">
+                        <span class="counter-label">Rest Sessions:</span>
+                        <span class="counter-value" id="rest-sessions-count">{{ rest_sessions_completed }}</span>
+                    </div>
+                </div>
+
                 <!-- Pomodoro Controls -->
                 <div class="pomodoro-controls">
                     {% if not pomodoro_is_running and not pomodoro_is_paused %}

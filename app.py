@@ -18,6 +18,10 @@ pomodoro_start_time = None
 pomodoro_is_running = False
 pomodoro_paused_elapsed = 0  # Track elapsed time when paused
 
+# Session counters
+work_sessions_completed = 0
+rest_sessions_completed = 0
+
 # Timestamps to track various countdowns
 countdown_start_time = None
 last_completion_time = None
@@ -423,6 +427,8 @@ def index():
         pomodoro_is_work_session=pomodoro_is_work_session,
         pomodoro_is_running=pomodoro_is_running,
         pomodoro_is_paused=(pomodoro_start_time is not None and not pomodoro_is_running),
+        work_sessions_completed=work_sessions_completed,
+        rest_sessions_completed=rest_sessions_completed,
         format_lap_time=format_lap_time,
         format_task_deadline=format_task_deadline,
         get_priority_color=get_priority_color,
@@ -647,12 +653,15 @@ def delete_favorite(favorite_name):
 @app.route('/toggle_focus_mode', methods=['POST'])
 def toggle_focus_mode():
     global focus_mode, pomodoro_start_time, pomodoro_is_running
+    global work_sessions_completed, rest_sessions_completed
     focus_mode = not focus_mode
     
     # Reset pomodoro timer when exiting focus mode
     if not focus_mode:
         pomodoro_start_time = None
         pomodoro_is_running = False
+        work_sessions_completed = 0
+        rest_sessions_completed = 0
     
     return redirect(url_for('index'))
 
@@ -672,10 +681,10 @@ def update_pomodoro_settings():
 
 @app.route('/start_pomodoro', methods=['POST'])
 def start_pomodoro():
-    global pomodoro_start_time, pomodoro_is_running, pomodoro_is_work_session
+    global pomodoro_start_time, pomodoro_is_running, pomodoro_paused_elapsed
     pomodoro_start_time = datetime.now()
     pomodoro_is_running = True
-    pomodoro_is_work_session = True  # Always start with work session
+    pomodoro_paused_elapsed = 0  # Reset paused time when starting fresh
     return redirect(url_for('index'))
 
 @app.route('/pause_pomodoro', methods=['POST'])
@@ -698,24 +707,34 @@ def resume_pomodoro():
 @app.route('/reset_pomodoro', methods=['POST'])
 def reset_pomodoro():
     global pomodoro_start_time, pomodoro_is_running, pomodoro_is_work_session, pomodoro_paused_elapsed
+    global work_sessions_completed, rest_sessions_completed
     pomodoro_start_time = None
     pomodoro_is_running = False
     pomodoro_is_work_session = True
     pomodoro_paused_elapsed = 0
+    work_sessions_completed = 0
+    rest_sessions_completed = 0
     return redirect(url_for('index'))
 
 @app.route('/get_pomodoro_time')
 def get_pomodoro_time():
     """Get remaining time in current pomodoro session"""
     global pomodoro_is_work_session, pomodoro_start_time, pomodoro_is_running, pomodoro_paused_elapsed
+    global work_sessions_completed, rest_sessions_completed
+    
+    # Calculate session duration for current session type
+    session_duration = pomodoro_work_minutes * 60 if pomodoro_is_work_session else pomodoro_rest_minutes * 60
     
     if not pomodoro_start_time:
+        # Timer hasn't been started yet, return full duration
         return jsonify({
-            'remaining_seconds': 0,
+            'remaining_seconds': session_duration,
             'is_work_session': pomodoro_is_work_session,
             'is_running': False,
             'session_complete': False,
-            'session_changed': False
+            'session_changed': False,
+            'work_sessions_completed': work_sessions_completed,
+            'rest_sessions_completed': rest_sessions_completed
         })
     
     now = datetime.now()
@@ -727,7 +746,6 @@ def get_pomodoro_time():
         # When paused, use the stored elapsed time
         elapsed_seconds = pomodoro_paused_elapsed
     
-    session_duration = pomodoro_work_minutes * 60 if pomodoro_is_work_session else pomodoro_rest_minutes * 60
     remaining_seconds = max(0, session_duration - elapsed_seconds)
     
     session_complete = remaining_seconds <= 0
@@ -735,23 +753,34 @@ def get_pomodoro_time():
     
     # Handle automatic session transition
     if session_complete and pomodoro_is_running:
+        # Increment the completed session counter
+        if pomodoro_is_work_session:
+            work_sessions_completed += 1
+        else:
+            rest_sessions_completed += 1
+            
         # Switch to the next session type
         pomodoro_is_work_session = not pomodoro_is_work_session
         session_changed = True
         
-        # Reset timer for the new session but keep it paused
-        pomodoro_start_time = None
-        pomodoro_is_running = False
+        # Automatically start the new session (continuous cycling)
+        pomodoro_start_time = now
+        pomodoro_is_running = True
         pomodoro_paused_elapsed = 0
         
-        # Return the new session info
+        # Calculate the duration for the NEW session type
+        new_session_duration = pomodoro_work_minutes * 60 if pomodoro_is_work_session else pomodoro_rest_minutes * 60
+        
+        # Return the new session info with full duration
         return jsonify({
-            'remaining_seconds': 0,
+            'remaining_seconds': new_session_duration,
             'is_work_session': pomodoro_is_work_session,
-            'is_running': False,
+            'is_running': True,  # Keep running for continuous cycling
             'session_complete': True,
             'session_changed': True,
-            'previous_session_was_work': not pomodoro_is_work_session
+            'previous_session_was_work': not pomodoro_is_work_session,
+            'work_sessions_completed': work_sessions_completed,
+            'rest_sessions_completed': rest_sessions_completed
         })
     
     return jsonify({
@@ -759,7 +788,9 @@ def get_pomodoro_time():
         'is_work_session': pomodoro_is_work_session,
         'is_running': pomodoro_is_running,
         'session_complete': session_complete,
-        'session_changed': session_changed
+        'session_changed': session_changed,
+        'work_sessions_completed': work_sessions_completed,
+        'rest_sessions_completed': rest_sessions_completed
     })
 
 if __name__ == "__main__":
