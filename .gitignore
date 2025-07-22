@@ -1,3 +1,5 @@
 archive/
 run.bat
 favorites.csv
+task_log.csv
+*.lnk

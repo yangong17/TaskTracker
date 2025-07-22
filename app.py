@@ -34,7 +34,7 @@ task_log = {}  # { "Task name": {"fastest_time": 123}, ... }
 favorites = []  # List of favorite task names
 
 def load_log():
-    """Load the task_log from CSV if it exists."""
+    """Load the task_log from CSV if it exists, or create an empty one if it doesn't."""
     global task_log
     if os.path.exists(LOG_FILENAME):
         with open(LOG_FILENAME, 'r', newline='') as f:
@@ -45,116 +45,9 @@ def load_log():
                     task_log[task_name] = {"fastest_time": int(fastest_str)}
         task_log = dict(sorted(task_log.items()))  # Sort alphabetically by keys
     else:
-        # If no log file exists, populate with sample data
-        populate_sample_log()
-
-def populate_sample_log():
-    """Populate the task log with comprehensive sample data for demonstration."""
-    global task_log
-    sample_tasks = {
-        # Work & Productivity
-        "Check emails": 300,  # 5 minutes
-        "Daily standup meeting": 900,  # 15 minutes
-        "Code review": 1800,  # 30 minutes
-        "Write documentation": 2700,  # 45 minutes
-        "Update project status": 600,  # 10 minutes
-        "Respond to client feedback": 1200,  # 20 minutes
-        "Plan weekly tasks": 1500,  # 25 minutes
-        "Research new tools": 3600,  # 1 hour
-        "Team brainstorming session": 2400,  # 40 minutes
-        "Prepare presentation": 4800,  # 1 hour 20 minutes
-        
-        # Personal Development
-        "Read industry articles": 1800,  # 30 minutes
-        "Online course lesson": 2700,  # 45 minutes
-        "Practice coding problem": 1200,  # 20 minutes
-        "Watch tutorial video": 900,  # 15 minutes
-        "Update LinkedIn profile": 600,  # 10 minutes
-        "Network with colleagues": 1800,  # 30 minutes
-        "Review course notes": 900,  # 15 minutes
-        "Complete certification exam": 7200,  # 2 hours
-        
-        # Health & Wellness
-        "Morning workout": 1800,  # 30 minutes
-        "Meditation session": 600,  # 10 minutes
-        "Prepare healthy lunch": 900,  # 15 minutes
-        "Evening walk": 1200,  # 20 minutes
-        "Yoga practice": 2400,  # 40 minutes
-        "Drink water reminder": 60,  # 1 minute
-        "Stretch break": 300,  # 5 minutes
-        "Plan workout routine": 600,  # 10 minutes
-        
-        # Household & Personal
-        "Tidy kitchen": 600,  # 10 minutes
-        "Do laundry": 300,  # 5 minutes (active time)
-        "Vacuum living room": 900,  # 15 minutes
-        "Pay monthly bills": 1200,  # 20 minutes
-        "Grocery shopping": 2700,  # 45 minutes
-        "Clean bathroom": 1800,  # 30 minutes
-        "Organize desk": 900,  # 15 minutes
-        "Water plants": 300,  # 5 minutes
-        "Take out trash": 180,  # 3 minutes
-        "Meal prep": 3600,  # 1 hour
-        
-        # Creative & Hobbies
-        "Write journal entry": 900,  # 15 minutes
-        "Practice guitar": 1800,  # 30 minutes
-        "Draw or sketch": 2400,  # 40 minutes
-        "Photo editing": 1800,  # 30 minutes
-        "Blog post writing": 3600,  # 1 hour
-        "Learn new song": 2700,  # 45 minutes
-        "Craft project": 4800,  # 1 hour 20 minutes
-        
-        # Social & Communication
-        "Call family member": 1200,  # 20 minutes
-        "Video chat with friends": 2400,  # 40 minutes
-        "Plan social event": 1800,  # 30 minutes
-        "Send thank you notes": 600,  # 10 minutes
-        "Social media update": 300,  # 5 minutes
-        
-        # Learning & Study
-        "Review flashcards": 900,  # 15 minutes
-        "Complete homework": 2700,  # 45 minutes
-        "Research assignment": 3600,  # 1 hour
-        "Study for exam": 5400,  # 1.5 hours
-        "Language practice": 1800,  # 30 minutes
-        "Take online quiz": 600,  # 10 minutes
-        
-        # Finance & Planning
-        "Budget review": 1800,  # 30 minutes
-        "Investment research": 2700,  # 45 minutes
-        "Plan vacation": 3600,  # 1 hour
-        "File taxes": 7200,  # 2 hours
-        "Review insurance": 1200,  # 20 minutes
-        "Update resume": 2400,  # 40 minutes
-        
-        # Technology & Maintenance
-        "Backup computer files": 900,  # 15 minutes
-        "Update software": 600,  # 10 minutes
-        "Clean desktop files": 1200,  # 20 minutes
-        "Password manager update": 600,  # 10 minutes
-        "Phone storage cleanup": 900,  # 15 minutes
-        "Install app updates": 300,  # 5 minutes
-        
-        # Quick Tasks
-        "Make bed": 120,  # 2 minutes
-        "Check weather": 60,  # 1 minute
-        "Set daily alarm": 120,  # 2 minutes
-        "Quick room scan": 180,  # 3 minutes
-        "Lock doors": 60,  # 1 minute
-        "Turn off lights": 60,  # 1 minute
-        
-        # Your existing tasks (preserved)
-        "Sort vlogs": 3328,
-        "Stats dashboard": 5,
-        "test": 0,
-        "tes 2": 1,
-        "test 3": 3,
-        "test 2": 17
-    }
-    
-    task_log = sample_tasks
-    save_log()  # Save the sample data to CSV
+        # Create an empty log file
+        task_log = {}
+        save_log()  # This will create the empty file
 
 def save_log():
     """Save the current task_log to CSV."""
