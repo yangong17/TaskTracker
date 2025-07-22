@@ -26,8 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function initFocusMode() {
         const pomodoroTimerEl = document.getElementById('pomodoro-timer');
         const sessionTypeEl = document.getElementById('session-type');
+        const focusContainer = document.querySelector('.focus-mode-container');
         
-        if (!pomodoroTimerEl || !sessionTypeEl) return;
+        if (!pomodoroTimerEl || !sessionTypeEl || !focusContainer) return;
+
+        // Set initial background based on current session type
+        const isWorkSession = sessionTypeEl.innerText.includes('Work');
+        updateFocusModeBackground(isWorkSession, focusContainer);
 
         // Update pomodoro timer every second
         setInterval(updatePomodoroTimer, 1000);
@@ -38,13 +43,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const pomodoroTimerEl = document.getElementById('pomodoro-timer');
         const sessionTypeEl = document.getElementById('session-type');
         const progressCircle = document.getElementById('progress-circle');
+        const focusContainer = document.querySelector('.focus-mode-container');
         
-        if (!pomodoroTimerEl || !sessionTypeEl || !progressCircle) return;
+        if (!pomodoroTimerEl || !sessionTypeEl || !progressCircle || !focusContainer) return;
 
         fetch('/get_pomodoro_time')
             .then(r => r.json())
             .then(data => {
                 const { remaining_seconds, is_work_session, is_running, session_complete, session_changed, previous_session_was_work, work_sessions_completed, rest_sessions_completed } = data;
+                
+                // Update focus mode container background based on session type
+                updateFocusModeBackground(is_work_session, focusContainer);
                 
                 // Update session counters if they're available in the response
                 if (work_sessions_completed !== undefined) {
@@ -71,8 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         previous_session_was_work ? "Time for a break! 🌱 Rest session starting..." : "Break's over! 💪 Work session starting..."
                     );
                     
-                    // Update UI for new session type
+                    // Update UI for new session type (including background)
                     updateSessionTypeDisplay(is_work_session, sessionTypeEl, progressCircle);
+                    updateFocusModeBackground(is_work_session, focusContainer);
                     
                     // Show session transition message briefly
                     if (previous_session_was_work) {
@@ -156,6 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionTypeEl.innerText = "Rest Session";
             sessionTypeEl.className = "session-type rest-session";
             progressCircle.className = "progress-ring-fill rest-session";
+        }
+    }
+
+    function updateFocusModeBackground(is_work_session, focusContainer) {
+        // Remove existing background classes
+        focusContainer.classList.remove('work-session-bg', 'rest-session-bg');
+        
+        // Add appropriate background class based on session type
+        if (is_work_session) {
+            focusContainer.classList.add('work-session-bg');
+        } else {
+            focusContainer.classList.add('rest-session-bg');
         }
     }
 
