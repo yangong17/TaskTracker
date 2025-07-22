@@ -9,8 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
     <script>
-        var allDone = {{ 'true' if all_done else 'false' }};
-        var deadlineSet = {{ 'true' if deadline_str else 'false' }};
+        var allDone = {% if all_done %}true{% else %}false{% endif %};
+        var deadlineSet = {% if deadline_str %}true{% else %}false{% endif %};
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
@@ -28,7 +28,6 @@
                 <button type="submit" class="btn cleartasks-btn">Clear Tasks</button>
             </form>
         </div>
-
 
         <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
 
@@ -48,7 +47,7 @@
             <div id="countdown" class="countdown">--:--:--</div>
         </div>  
 
-        <!-- Secondary “spent time” timer -->
+        <!-- Secondary "spent time" timer -->
         <div class="bordered-box">
             <div class="currenttask-display">
                 Time Spent on Current Task:
@@ -80,11 +79,27 @@
         <!------------ LINE BREAK ------------>
 
         <!-- Tasks Table -->
-        <h2>Current Tasks</h2>
+        <div class="table-header">
+            <h2 style="display: inline-block;">Current Tasks</h2>
+            <div class="sort-buttons">
+                <form action="{{ url_for('sort_priority_asc') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn sort-btn">Sort 1→5</button>
+                </form>
+                <form action="{{ url_for('sort_priority_desc') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn sort-btn">Sort 5→1</button>
+                </form>
+                <form action="{{ url_for('sort_deadline_asc') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn sort-btn">Sort by Deadline</button>
+                </form>
+            </div>
+        </div>
+        
         <table class="task-table">
             <thead>
                 <tr>
                     <th>Task</th>
+                    <th>Priority (1-5)</th>
+                    <th>Deadline</th>
                     <th>Time</th>
                     <th>Complete</th>
                     <th>Delete</th>
@@ -92,12 +107,51 @@
             </thead>
             <tbody>
                 {% for task in tasks %}
-                <tr>
+                <tr class="{{ 'overdue-task' if is_task_overdue(task) else '' }}">
                     <!-- Task text -->
                     <td class="task-cell"
                         style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'white' if task.completed else 'black' }}">
                         {{ task.text }}
                     </td>
+                    
+                    <!-- Priority -->
+                    <td class="priority-cell">
+                        <form action="{{ url_for('update_priority', task_id=loop.index0) }}" method="post" class="inline-form">
+                            <select name="priority" class="priority-select" onchange="this.form.submit()" 
+                                    style="border-color: {{ get_priority_color(task.get('priority', 3)) }};">
+                                {% for priority_num in range(1, 6) %}
+                                <option value="{{ priority_num }}" 
+                                        {% if task.get('priority', 3) == priority_num %}selected{% endif %}
+                                        style="color: {{ get_priority_color(priority_num) }};">
+                                    {{ priority_num }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </td>
+                    
+                    <!-- Task Deadline -->
+                    <td class="deadline-cell">
+                        <form action="{{ url_for('update_task_deadline', task_id=loop.index0) }}" method="post" class="inline-form">
+                            <select name="task_deadline" class="deadline-select" onchange="this.form.submit()">
+                                <option value="">No deadline</option>
+                                {% for option in task_deadline_increments %}
+                                <option value="{{ option.value }}" 
+                                        {% if task.get('task_deadline') and task.task_deadline.isoformat() == option.value %}selected{% endif %}>
+                                    {{ option.text }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                        {% if task.get('task_deadline') %}
+                        <div class="task-countdown {{ 'overdue-text' if is_task_overdue(task) else '' }}" 
+                             data-deadline="{{ task.task_deadline.isoformat() }}"
+                             data-task-id="{{ loop.index0 }}">
+                            --:--
+                        </div>
+                        {% endif %}
+                    </td>
+                    
                     <!-- Lap time -->
                     <td>
                         {% if task.lap_time %}
@@ -106,12 +160,14 @@
                             -
                         {% endif %}
                     </td>
+                    
                     <!-- Complete button -->
                     <td>
                         <a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">
                             {{ 'Undo' if task.completed else 'Complete' }}
                         </a>
                     </td>
+                    
                     <!-- Delete button -->
                     <td>
                         <a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a>
@@ -132,7 +188,7 @@
                     <th>Task</th>
                     <th>Quickest Time</th>
                     <th>Add Task</th>
-                    <th>Delete</th> <!-- New column -->
+                    <th>Delete</th>
                 </tr>
             </thead>
             <tbody>
@@ -151,7 +207,51 @@
                 </tr>
             {% endfor %}
             </tbody>
-        </table>        
+        </table>
+
+        <!------------ LINE BREAK ------------>
+        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+
+        <!-- Favorites Table -->
+        <h2>Favorites</h2>
+        
+        <!-- Add Favorite Form -->
+        <form action="{{ url_for('add_favorite') }}" method="post" class="task-form">
+            <input type="text" name="favorite_text" placeholder="Add new favorite task" required class="task-input">
+            <button type="submit" class="btn add-btn">Add Favorite</button>
+        </form>
+
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Favorite Task</th>
+                    <th>Add to Current Tasks</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for favorite in favorites %}
+                <tr>
+                    <td>{{ favorite }}</td>
+                    <td>
+                        <a href="{{ url_for('add_task_from_favorite', favorite_name=favorite) }}" class="btn add-favorite-btn">Add</a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('delete_favorite', favorite_name=favorite) }}" class="btn delete-btn">
+                            Delete
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            {% if not favorites %}
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #666; font-style: italic;">
+                        No favorites yet. Add some above for quick task creation!
+                    </td>
+                </tr>
+            {% endif %}
+            </tbody>
+        </table>
     </div>
 </body>
 </html>

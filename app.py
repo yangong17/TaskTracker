@@ -1,6 +1,6 @@
 import csv
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
@@ -14,9 +14,11 @@ countdown_start_time = None
 last_completion_time = None
 spent_time_start_time = None
 
-# ====== Log Storage ======
+# ====== Storage ======
 LOG_FILENAME = "task_log.csv"
+FAVORITES_FILENAME = "favorites.csv"
 task_log = {}  # { "Task name": {"fastest_time": 123}, ... }
+favorites = []  # List of favorite task names
 
 def load_log():
     """Load the task_log from CSV if it exists."""
@@ -24,12 +26,122 @@ def load_log():
     if os.path.exists(LOG_FILENAME):
         with open(LOG_FILENAME, 'r', newline='') as f:
             reader = csv.reader(f)
-            next(reader)  # Skip the header row
             for row in reader:
                 if len(row) == 2:
                     task_name, fastest_str = row
                     task_log[task_name] = {"fastest_time": int(fastest_str)}
         task_log = dict(sorted(task_log.items()))  # Sort alphabetically by keys
+    else:
+        # If no log file exists, populate with sample data
+        populate_sample_log()
+
+def populate_sample_log():
+    """Populate the task log with comprehensive sample data for demonstration."""
+    global task_log
+    sample_tasks = {
+        # Work & Productivity
+        "Check emails": 300,  # 5 minutes
+        "Daily standup meeting": 900,  # 15 minutes
+        "Code review": 1800,  # 30 minutes
+        "Write documentation": 2700,  # 45 minutes
+        "Update project status": 600,  # 10 minutes
+        "Respond to client feedback": 1200,  # 20 minutes
+        "Plan weekly tasks": 1500,  # 25 minutes
+        "Research new tools": 3600,  # 1 hour
+        "Team brainstorming session": 2400,  # 40 minutes
+        "Prepare presentation": 4800,  # 1 hour 20 minutes
+        
+        # Personal Development
+        "Read industry articles": 1800,  # 30 minutes
+        "Online course lesson": 2700,  # 45 minutes
+        "Practice coding problem": 1200,  # 20 minutes
+        "Watch tutorial video": 900,  # 15 minutes
+        "Update LinkedIn profile": 600,  # 10 minutes
+        "Network with colleagues": 1800,  # 30 minutes
+        "Review course notes": 900,  # 15 minutes
+        "Complete certification exam": 7200,  # 2 hours
+        
+        # Health & Wellness
+        "Morning workout": 1800,  # 30 minutes
+        "Meditation session": 600,  # 10 minutes
+        "Prepare healthy lunch": 900,  # 15 minutes
+        "Evening walk": 1200,  # 20 minutes
+        "Yoga practice": 2400,  # 40 minutes
+        "Drink water reminder": 60,  # 1 minute
+        "Stretch break": 300,  # 5 minutes
+        "Plan workout routine": 600,  # 10 minutes
+        
+        # Household & Personal
+        "Tidy kitchen": 600,  # 10 minutes
+        "Do laundry": 300,  # 5 minutes (active time)
+        "Vacuum living room": 900,  # 15 minutes
+        "Pay monthly bills": 1200,  # 20 minutes
+        "Grocery shopping": 2700,  # 45 minutes
+        "Clean bathroom": 1800,  # 30 minutes
+        "Organize desk": 900,  # 15 minutes
+        "Water plants": 300,  # 5 minutes
+        "Take out trash": 180,  # 3 minutes
+        "Meal prep": 3600,  # 1 hour
+        
+        # Creative & Hobbies
+        "Write journal entry": 900,  # 15 minutes
+        "Practice guitar": 1800,  # 30 minutes
+        "Draw or sketch": 2400,  # 40 minutes
+        "Photo editing": 1800,  # 30 minutes
+        "Blog post writing": 3600,  # 1 hour
+        "Learn new song": 2700,  # 45 minutes
+        "Craft project": 4800,  # 1 hour 20 minutes
+        
+        # Social & Communication
+        "Call family member": 1200,  # 20 minutes
+        "Video chat with friends": 2400,  # 40 minutes
+        "Plan social event": 1800,  # 30 minutes
+        "Send thank you notes": 600,  # 10 minutes
+        "Social media update": 300,  # 5 minutes
+        
+        # Learning & Study
+        "Review flashcards": 900,  # 15 minutes
+        "Complete homework": 2700,  # 45 minutes
+        "Research assignment": 3600,  # 1 hour
+        "Study for exam": 5400,  # 1.5 hours
+        "Language practice": 1800,  # 30 minutes
+        "Take online quiz": 600,  # 10 minutes
+        
+        # Finance & Planning
+        "Budget review": 1800,  # 30 minutes
+        "Investment research": 2700,  # 45 minutes
+        "Plan vacation": 3600,  # 1 hour
+        "File taxes": 7200,  # 2 hours
+        "Review insurance": 1200,  # 20 minutes
+        "Update resume": 2400,  # 40 minutes
+        
+        # Technology & Maintenance
+        "Backup computer files": 900,  # 15 minutes
+        "Update software": 600,  # 10 minutes
+        "Clean desktop files": 1200,  # 20 minutes
+        "Password manager update": 600,  # 10 minutes
+        "Phone storage cleanup": 900,  # 15 minutes
+        "Install app updates": 300,  # 5 minutes
+        
+        # Quick Tasks
+        "Make bed": 120,  # 2 minutes
+        "Check weather": 60,  # 1 minute
+        "Set daily alarm": 120,  # 2 minutes
+        "Quick room scan": 180,  # 3 minutes
+        "Lock doors": 60,  # 1 minute
+        "Turn off lights": 60,  # 1 minute
+        
+        # Your existing tasks (preserved)
+        "Sort vlogs": 3328,
+        "Stats dashboard": 5,
+        "test": 0,
+        "tes 2": 1,
+        "test 3": 3,
+        "test 2": 17
+    }
+    
+    task_log = sample_tasks
+    save_log()  # Save the sample data to CSV
 
 def save_log():
     """Save the current task_log to CSV."""
@@ -37,6 +149,23 @@ def save_log():
         writer = csv.writer(f)
         for name, data in task_log.items():
             writer.writerow([name, data["fastest_time"]])
+
+def load_favorites():
+    """Load the favorites list from CSV if it exists."""
+    global favorites
+    if os.path.exists(FAVORITES_FILENAME):
+        with open(FAVORITES_FILENAME, 'r', newline='') as f:
+            reader = csv.reader(f)
+            favorites = [row[0] for row in reader if row]
+    else:
+        favorites = []
+
+def save_favorites():
+    """Save the current favorites list to CSV."""
+    with open(FAVORITES_FILENAME, 'w', newline='') as f:
+        writer = csv.writer(f)
+        for fav in favorites:
+            writer.writerow([fav])
             
 def update_fastest_time(task_name, lap_seconds):
     """
@@ -53,6 +182,49 @@ def update_fastest_time(task_name, lap_seconds):
         if lap_seconds < task_log[task_name]["fastest_time"]:
             task_log[task_name]["fastest_time"] = lap_seconds
             save_log()
+
+def sort_tasks_by_priority():
+    """Sort tasks by priority (1=highest, higher numbers=lower priority), then by creation order."""
+    global tasks
+    tasks.sort(key=lambda t: (t.get('priority', 5), t.get('created_at', datetime.now())))
+
+def sort_tasks_by_priority_desc():
+    """Sort tasks by priority descending (highest number first), then by creation order."""
+    global tasks
+    tasks.sort(key=lambda t: (-t.get('priority', 5), t.get('created_at', datetime.now())))
+
+def sort_tasks_by_deadline():
+    """Sort tasks by deadline (earliest first), then by priority, then by creation order."""
+    global tasks
+    def deadline_sort_key(task):
+        deadline = task.get('task_deadline')
+        if deadline is None:
+            # Tasks without deadlines go to the end
+            return (datetime.max, task.get('priority', 5), task.get('created_at', datetime.now()))
+        return (deadline, task.get('priority', 5), task.get('created_at', datetime.now()))
+    
+    tasks.sort(key=deadline_sort_key)
+
+def is_task_overdue(task):
+    """Check if a task is overdue based on its deadline."""
+    if not task.get('task_deadline'):
+        return False
+    return datetime.now() > task['task_deadline']
+
+def get_priority_color(priority_value):
+    """Get the color for a priority value - lower numbers = higher priority = redder colors."""
+    if priority_value == 1:
+        return '#dc3545'  # Red - highest priority
+    elif priority_value == 2:
+        return '#fd7e14'  # Orange
+    elif priority_value == 3:
+        return '#ffc107'  # Yellow
+    elif priority_value == 4:
+        return '#20c997'  # Teal
+    elif priority_value == 5:
+        return '#28a745'  # Green - lowest priority
+    else:
+        return '#6c757d'  # Gray for any other values
 
 # ====== Utility & Timer Functions ======
 
@@ -93,6 +265,48 @@ def get_time_increments():
             h = 0
     return increments
 
+def get_task_deadline_increments():
+    """Generate 15-minute increments for task deadlines (next 12 hours, matching countdown deadline)."""
+    now = datetime.now()
+    increments = []
+    
+    # Start from next 15-minute increment
+    minute = (now.minute // 15 + 1) * 15
+    hour = now.hour
+    if minute == 60:
+        hour += 1
+        minute = 0
+    
+    start_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if start_time <= now:
+        start_time += timedelta(minutes=15)
+    
+    for i in range(48):  # 48 * 15 minutes = 12 hours (matching countdown deadline)
+        time_option = start_time + timedelta(minutes=i * 15)
+        display_hour_24 = time_option.hour
+        
+        if display_hour_24 == 0:
+            display_hour_12 = 12
+            ampm = "AM"
+        elif display_hour_24 < 12:
+            display_hour_12 = display_hour_24
+            ampm = "AM"
+        elif display_hour_24 == 12:
+            display_hour_12 = 12
+            ampm = "PM"
+        else:
+            display_hour_12 = display_hour_24 - 12
+            ampm = "PM"
+        
+        # Just show the time without day prefix
+        display_text = f"{display_hour_12}:{time_option.minute:02d} {ampm}"
+        increments.append({
+            'value': time_option.isoformat(),
+            'text': display_text
+        })
+    
+    return increments
+
 def format_deadline(d):
     """Return a user-friendly HH:MM AM/PM string for the deadline."""
     if d is None:
@@ -111,6 +325,37 @@ def format_deadline(d):
         display_hour = hour_24 - 12
         ampm = "PM"
     return f"{display_hour}:{minute:02d} {ampm}"
+
+def format_task_deadline(task_deadline):
+    """Format task deadline for display."""
+    if not task_deadline:
+        return ""
+    
+    now = datetime.now()
+    
+    # Check if it's today or tomorrow
+    if task_deadline.date() == now.date():
+        day_part = "Today"
+    elif task_deadline.date() == (now + timedelta(days=1)).date():
+        day_part = "Tomorrow"
+    else:
+        day_part = task_deadline.strftime("%m/%d")
+    
+    hour_24 = task_deadline.hour
+    if hour_24 == 0:
+        display_hour = 12
+        ampm = "AM"
+    elif hour_24 < 12:
+        display_hour = hour_24
+        ampm = "AM"
+    elif hour_24 == 12:
+        display_hour = 12
+        ampm = "PM"
+    else:
+        display_hour = hour_24 - 12
+        ampm = "PM"
+    
+    return f"{day_part} {display_hour}:{task_deadline.minute:02d} {ampm}"
 
 def format_lap_time(seconds):
     """
@@ -134,18 +379,27 @@ def format_lap_time(seconds):
 @app.route('/')
 def index():
     increments = get_time_increments()
+    task_deadline_increments = get_task_deadline_increments()
     all_done = (len(tasks) > 0) and all(t['completed'] for t in tasks)
     deadline_str = format_deadline(deadline)
+
+    # Sort tasks by priority before displaying (default: lowest number = highest priority)
+    sort_tasks_by_priority()
 
     # Pass format_lap_time into the template so Jinja can call it
     return render_template(
         'index.html',
         tasks=tasks,
         increments=increments,
+        task_deadline_increments=task_deadline_increments,
         all_done=all_done,
         deadline_str=deadline_str,
         task_log=task_log,
-        format_lap_time=format_lap_time
+        favorites=favorites,
+        format_lap_time=format_lap_time,
+        format_task_deadline=format_task_deadline,
+        get_priority_color=get_priority_color,
+        is_task_overdue=is_task_overdue
     )
 
 # Clear tasks
@@ -159,13 +413,61 @@ def clear_tasks():
 def add_task():
     task_text = request.form.get('task_text', '').strip()
     if task_text:
-        tasks.append({
+        new_task = {
             'text': task_text,
             'completed': False,
-            'lap_time': None
-        })
+            'lap_time': None,
+            'priority': 3,  # Default to middle priority
+            'task_deadline': None,
+            'created_at': datetime.now()
+        }
+        tasks.append(new_task)
     return redirect(url_for('index'))
 
+@app.route('/update_priority/<int:task_id>', methods=['POST'])
+def update_priority(task_id):
+    if 0 <= task_id < len(tasks):
+        priority = int(request.form.get('priority', 3))
+        tasks[task_id]['priority'] = priority
+    return redirect(url_for('index'))
+
+@app.route('/update_task_deadline/<int:task_id>', methods=['POST'])
+def update_task_deadline(task_id):
+    if 0 <= task_id < len(tasks):
+        deadline_str = request.form.get('task_deadline', '').strip()
+        if deadline_str:
+            try:
+                task_deadline = datetime.fromisoformat(deadline_str)
+                tasks[task_id]['task_deadline'] = task_deadline
+            except:
+                pass  # Invalid datetime format
+        else:
+            tasks[task_id]['task_deadline'] = None
+    return redirect(url_for('index'))
+
+@app.route('/sort_priority_asc', methods=['POST'])
+def sort_priority_asc():
+    """Sort tasks by priority ascending (1, 2, 3, 4, 5)"""
+    sort_tasks_by_priority()
+    return redirect(url_for('index'))
+
+@app.route('/sort_priority_desc', methods=['POST'])
+def sort_priority_desc():
+    """Sort tasks by priority descending (5, 4, 3, 2, 1)"""
+    sort_tasks_by_priority_desc()
+    return redirect(url_for('index'))
+
+@app.route('/sort_deadline_asc', methods=['POST'])
+def sort_deadline_asc():
+    """Sort tasks by deadline ascending (earliest first)"""
+    sort_tasks_by_deadline()
+    return redirect(url_for('index'))
+
+@app.route('/sort_deadline_desc', methods=['POST'])
+def sort_deadline_desc():
+    """Sort tasks by deadline descending (latest first)"""
+    sort_tasks_by_deadline()
+    return redirect(url_for('index'))
 
 @app.route('/complete/<int:task_id>')
 def complete_task(task_id):
@@ -194,13 +496,11 @@ def complete_task(task_id):
             task['lap_time'] = None
     return redirect(url_for('index'))
 
-
 @app.route('/delete/<int:task_id>')
 def delete_task(task_id):
     if 0 <= task_id < len(tasks):
         del tasks[task_id]
     return redirect(url_for('index'))
-
 
 @app.route('/set_deadline', methods=['POST'])
 def set_deadline():
@@ -234,7 +534,6 @@ def set_deadline():
             pass
     return redirect(url_for('index'))
 
-
 @app.route('/reset_deadline', methods=['POST'])
 def reset_deadline():
     global deadline, countdown_start_time, last_completion_time, spent_time_start_time
@@ -243,7 +542,6 @@ def reset_deadline():
     last_completion_time = None
     spent_time_start_time = None
     return redirect(url_for('index'))
-
 
 @app.route('/get_remaining_time')
 def get_remaining_time():
@@ -254,7 +552,6 @@ def get_remaining_time():
         return str(seconds_left)
     return '0'
 
-
 @app.route('/get_spent_time')
 def get_spent_time():
     global spent_time_start_time
@@ -264,14 +561,17 @@ def get_spent_time():
     diff = now - spent_time_start_time
     return str(int(diff.total_seconds()))
 
-
 @app.route('/add_task_from_log/<task_name>')
 def add_task_from_log(task_name):
-    tasks.append({
+    new_task = {
         'text': task_name,
         'completed': False,
-        'lap_time': None
-    })
+        'lap_time': None,
+        'priority': 3,  # Default to middle priority
+        'task_deadline': None,
+        'created_at': datetime.now()
+    }
+    tasks.append(new_task)
     return redirect(url_for('index'))
 
 @app.route('/delete_from_log/<task_name>')
@@ -281,7 +581,37 @@ def delete_from_log(task_name):
         save_log()
     return redirect(url_for('index'))
 
+# ====== Favorites Routes ======
+
+@app.route('/add_favorite', methods=['POST'])
+def add_favorite():
+    fav_text = request.form.get('favorite_text', '').strip()
+    if fav_text and fav_text not in favorites:
+        favorites.append(fav_text)
+        save_favorites()
+    return redirect(url_for('index'))
+
+@app.route('/add_task_from_favorite/<favorite_name>')
+def add_task_from_favorite(favorite_name):
+    new_task = {
+        'text': favorite_name,
+        'completed': False,
+        'lap_time': None,
+        'priority': 3,  # Default to middle priority
+        'task_deadline': None,
+        'created_at': datetime.now()
+    }
+    tasks.append(new_task)
+    return redirect(url_for('index'))
+
+@app.route('/delete_favorite/<favorite_name>')
+def delete_favorite(favorite_name):
+    if favorite_name in favorites:
+        favorites.remove(favorite_name)
+        save_favorites()
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     load_log()  # Ensure we load the CSV before app.run
+    load_favorites()  # Load favorites
     app.run(debug=True)
