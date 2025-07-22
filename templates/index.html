@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
     <title>Yang's Task Tracker{% if focus_mode %} - Focus Mode{% endif %}</title>
+    <!-- Prevent theme flash -->
+    <script>
+        // Apply theme immediately before page renders
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            // Also set it for body when it's available
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.setAttribute('data-theme', savedTheme);
+            });
+        })();
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
@@ -19,6 +31,18 @@
 </head>
 <body>
     <div class="container">
+        
+        <!-- Light/Dark Mode Toggle -->
+        <div class="theme-toggle-container">
+            <div class="theme-toggle">
+                <input type="checkbox" id="theme-switch" class="theme-switch">
+                <label for="theme-switch" class="theme-label">
+                    <span class="theme-icon sun">☀️</span>
+                    <span class="theme-icon moon">🌙</span>
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
+        </div>
 
         {% if focus_mode %}
             <!-- FOCUS MODE UI -->
@@ -132,7 +156,7 @@
                 </form>
             </div>
 
-            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+            <hr>
 
             <h1>Yang's Task Tracker</h1>
             
@@ -143,12 +167,12 @@
             {% endif %}
             
             <!-- Main countdown timer -->
-            <div class="bordered-box">
+            <div class="bordered-box timer-container">
                 <div class="timeremaining-display">
                     Time Remaining:
                 </div>
                 <div id="countdown" class="countdown">--:--:--</div>
-            </div>  
+            </div>
 
             <!-- Secondary "spent time" timer -->
             <div class="bordered-box">
@@ -181,7 +205,24 @@
                 </form>
             </div>
 
-            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+            <hr>
+
+            <!-- Study Ambience Video Section -->
+            <div class="video-section">
+                <div class="video-header">
+                    <h3 class="video-title">Study Ambience</h3>
+                    <button id="toggle-video" class="btn video-toggle-btn">Show Video</button>
+                </div>
+                <div id="video-container" class="video-container hidden">
+                    <iframe width="560" height="315" 
+                            src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=0&mute=0&loop=1&playlist=jfKfPfyJRdk" 
+                            title="Study Ambience Video" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
 
             <!------------ REST OF TASK TRACKER UI ------------>
 
@@ -216,20 +257,17 @@
                     {% for task in tasks %}
                     <tr class="{{ 'overdue-task' if is_task_overdue(task) else '' }}">
                         <!-- Task text -->
-                        <td class="task-cell"
-                            style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'black' if (task.completed and is_task_overdue(task)) else ('white' if task.completed else 'black') }}">
+                        <td class="task-cell {% if task.completed %}task-completed{% endif %} {% if is_task_overdue(task) %}task-overdue{% endif %}">
                             {{ task.text }}
                         </td>
                         
                         <!-- Priority -->
                         <td class="priority-cell">
                             <form action="{{ url_for('update_priority', task_id=loop.index0) }}" method="post" class="inline-form">
-                                <select name="priority" class="priority-select" onchange="this.form.submit()" 
-                                        style="border-color: {{ get_priority_color(task.get('priority', 3)) }};">
+                                <select name="priority" class="priority-select" onchange="this.form.submit()">
                                     {% for priority_num in range(1, 6) %}
                                     <option value="{{ priority_num }}" 
-                                            {% if task.get('priority', 3) == priority_num %}selected{% endif %}
-                                            style="color: {{ get_priority_color(priority_num) }};">
+                                            {% if task.get('priority', 3) == priority_num %}selected{% endif %}>
                                         {{ priority_num }}
                                     </option>
                                     {% endfor %}
@@ -285,7 +323,7 @@
             </table>
 
             <!------------ LINE BREAK ------------>
-            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+            <hr>
 
             <!-- Previous Tasks Log (same style as main table) -->
             <h2>Previous Tasks Log</h2>
@@ -317,7 +355,7 @@
             </table>
 
             <!------------ LINE BREAK ------------>
-            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+            <hr>
 
             <!-- Favorites Table -->
             <h2>Favorites</h2>
@@ -352,7 +390,7 @@
                 {% endfor %}
                 {% if not favorites %}
                     <tr>
-                        <td colspan="3" style="text-align: center; color: #666; font-style: italic;">
+                        <td colspan="3" class="no-favorites-message">
                             No favorites yet. Add some above for quick task creation!
                         </td>
                     </tr>

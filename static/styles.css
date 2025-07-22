@@ -1,18 +1,179 @@
+/* ====== THEME VARIABLES ====== */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --border-color: #dee2e6;
+    --border-color-light: #e9ecef;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-medium: rgba(0, 0, 0, 0.15);
+    --accent-blue: #007BFF;
+    --accent-blue-hover: #0056b3;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #e0e0e0;
+    --text-muted: #b0b0b0;
+    --border-color: #404040;
+    --border-color-light: #505050;
+    --shadow-light: rgba(0, 0, 0, 0.3);
+    --shadow-medium: rgba(0, 0, 0, 0.5);
+    --accent-blue: #4dabf7;
+    --accent-blue-hover: #339af0;
+    --success-color: #51cf66;
+    --danger-color: #ff6b6b;
+    --warning-color: #ffd43b;
+    --info-color: #74c0fc;
+}
+
+/* ====== GLOBAL TEXT THEMING ====== */
+/* Clean, comprehensive heading theming */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary) !important;
+    transition: color 0.3s ease;
+}
+
+/* Dark mode specific overrides for form elements */
+[data-theme="dark"] .priority-select,
+[data-theme="dark"] .deadline-select {
+    color: #000000 !important;
+    background: #ffffff !important;
+}
+
+[data-theme="dark"] .priority-select option,
+[data-theme="dark"] .deadline-select option {
+    color: #000000 !important;
+    background: #ffffff !important;
+}
+
+/* Video title styling - Light mode = black, Dark mode = white */
+body:not([data-theme="dark"]) .video-title,
+body:not([data-theme="dark"]) .video-header h3.video-title {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .video-title,
+[data-theme="dark"] .video-header h3.video-title {
+    color: #ffffff !important;
+}
+
+/* ====== BASE STYLING ====== */
 body {
-    font-family: 'Roboto', 'Open Sans', sans-serif;
-    background: #f0f0f0;
-    color: #333;
-    margin: 20px;
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
-    width: 900px; /* Increased width further for better layout */
+    max-width: 900px;
     margin: 0 auto;
-    background: #fff;
-    padding: 20px 30px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    background: var(--bg-primary);
+    min-height: 100vh;
+    position: relative;
+    transition: background-color 0.3s ease;
 }
 
+/* ====== THEME TOGGLE STYLES ====== */
+.theme-toggle-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.theme-toggle {
+    position: relative;
+    display: inline-block;
+}
+
+.theme-switch {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.theme-label {
+    display: block;
+    width: 70px;
+    height: 35px;
+    background: var(--bg-tertiary);
+    border-radius: 25px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.theme-label:hover {
+    box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
+.theme-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.theme-icon.sun {
+    left: 8px;
+    opacity: 1;
+}
+
+.theme-icon.moon {
+    right: 8px;
+    opacity: 0.3;
+}
+
+.theme-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 27px;
+    height: 27px;
+    background: var(--bg-primary);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px var(--shadow-light);
+    z-index: 1;
+}
+
+.theme-switch:checked + .theme-label {
+    background: #2c3e50;
+}
+
+.theme-switch:checked + .theme-label .theme-icon.sun {
+    opacity: 0.3;
+}
+
+.theme-switch:checked + .theme-label .theme-icon.moon {
+    opacity: 1;
+}
+
+.theme-switch:checked + .theme-label .theme-slider {
+    transform: translateX(35px);
+    background: #34495e;
+}
+
+/* ====== TYPOGRAPHY ====== */
 h1 {
     text-align: center;
     font-family: 'Open Sans', sans-serif;
@@ -24,7 +185,15 @@ h2 {
     font-family: 'Open Sans', sans-serif;
     font-size: 24px;
     margin-bottom: 15px;
-    color: #333;
+    color: var(--text-primary);
+}
+
+h4 {
+    text-align: center;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 30px;
+    margin-bottom: 15px;
+    color: var(--text-primary);
 }
 
 h5 {
@@ -32,13 +201,30 @@ h5 {
     font-family: 'Open Sans', sans-serif;
     font-size: 25px;
     margin-bottom: 5px;
+    color: var(--text-primary);
+}
+
+/* ====== UTILITY STYLES ====== */
+hr {
+    border: none;
+    border-top: 3px solid var(--accent-blue);
+    width: 100%;
+    margin: 20px auto;
+    transition: border-color 0.3s ease;
+}
+
+.no-favorites-message {
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 20px;
 }
 
 .deadline-display {
     text-align: center;
     font-size: 32px;
     font-weight: 700;
-    color: #a70202;
+    color: var(--danger-color);
     margin-bottom: 10px;
 }
 
@@ -46,7 +232,7 @@ h5 {
     text-align: center;
     font-size: 32px;
     font-weight: 700;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 5px;
 }
 
@@ -54,16 +240,110 @@ h5 {
     text-align: center;
     font-size: 32px;
     font-weight: 700;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 5px;
 }
 
 .bordered-box {
-    border: 2px solid #ccc;
+    border: 2px solid var(--border-color);
     padding: 10px;
     margin: 10px 0;
     border-radius: 2px;
-    background-color: #f9f9f9;
+    background: var(--bg-secondary);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Input and form styling */
+.input {
+    padding: 8px;
+    font-size: 14px;
+    margin-right: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.dropdown {
+    padding: 8px;
+    font-size: 14px;
+    margin-right: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+/* Specific styling for priority and deadline dropdowns */
+.priority-select,
+.deadline-select,
+select {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.priority-select:focus,
+.deadline-select:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Ensure dropdown options are visible in dark mode */
+.priority-select option,
+.deadline-select option,
+select option {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Dark mode specific overrides for form elements */
+[data-theme="dark"] .priority-select,
+[data-theme="dark"] .deadline-select,
+[data-theme="dark"] select {
+    background: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #555555 !important;
+}
+
+[data-theme="dark"] .priority-select option,
+[data-theme="dark"] .deadline-select option,
+[data-theme="dark"] select option {
+    background: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Ensure form elements are clearly visible with enhanced borders */
+[data-theme="dark"] select,
+[data-theme="dark"] input {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Focus state enhancement for dark mode */
+[data-theme="dark"] select:focus,
+[data-theme="dark"] input:focus {
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    border-color: #4dabf7 !important;
+}
+
+/* Timer container */
+.timer-container {
+    position: relative;
 }
 
 .countdown {
@@ -73,19 +353,175 @@ h5 {
     margin-top: 10px;
     margin-bottom: 10px;
     font-family: 'Open Sans', sans-serif;
-    color: #464646;
-    text-shadow: 2px 2px #ffc0cb00;
-    transition: color 0.3s;
+    color: var(--text-primary);
+    text-shadow: 2px 2px 4px var(--shadow-light);
+    transition: all 0.3s ease;
+}
+
+.countdown.low-time {
+    color: var(--danger-color);
+}
+
+.countdown.all-done {
+    color: var(--success-color);
+}
+
+.timeremaining-display,
+.currenttask-display {
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 5px;
+    transition: color 0.3s ease;
+}
+
+/* Study Ambience Video Section */
+.video-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.video-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Video title styling with important overrides */
+.video-title,
+.video-header h3.video-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Light mode override */
+body:not([data-theme="dark"]) .video-title,
+body:not([data-theme="dark"]) .video-header h3.video-title {
+    color: #000000 !important;
+}
+
+/* Dark mode override */
+[data-theme="dark"] .video-title,
+[data-theme="dark"] .video-header h3.video-title {
+    color: #ffffff !important;
+}
+
+.video-toggle-btn {
+    background: var(--text-muted);
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.video-toggle-btn:hover {
+    background: var(--text-secondary);
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.video-container.hidden {
+    height: 0;
+    padding-bottom: 0;
+    margin: 0;
+    opacity: 0;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+/* Responsive video */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .theme-toggle-container {
+        top: 10px;
+        right: 10px;
+    }
+    
+    .theme-label {
+        width: 60px;
+        height: 30px;
+    }
+    
+    .theme-icon {
+        font-size: 14px;
+    }
+    
+    .theme-icon.sun {
+        left: 6px;
+    }
+    
+    .theme-icon.moon {
+        right: 6px;
+    }
+    
+    .theme-slider {
+        width: 22px;
+        height: 22px;
+        top: 2px;
+        left: 2px;
+    }
+    
+    .theme-switch:checked + .theme-label .theme-slider {
+        transform: translateX(30px);
+    }
+    
+    .video-section {
+        margin: 15px 0;
+        padding: 10px;
+    }
+    
+    .video-header h3 {
+        font-size: 16px;
+    }
+    
+    .video-toggle-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .countdown {
+        font-size: 64px;
+    }
+    
+    .spent-time {
+        font-size: 28px;
+    }
 }
 
 /* The new secondary timer, in navy */
 .spent-time {
     text-align: center;
-    font-size: 72px;
+    font-size: 36px;
     font-weight: 700;
-    margin-bottom: 10px;
-    color: rgb(67, 129, 245);
     font-family: 'Open Sans', sans-serif;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
 }
 
 .low-time {
@@ -104,13 +540,142 @@ h5 {
     margin-bottom: 20px;
 }
 
+.task-form {
+    display: flex;
+    margin: 20px 0;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Task input and other form elements */
 .task-input {
     flex: 1;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     padding: 8px;
     font-size: 14px;
-    margin-right: 10px;
     border-radius: 4px;
-    border: 1px solid #ccc;
+    transition: all 0.3s ease;
+}
+
+.task-input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Universal input styling for dark mode */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--border-color) !important;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Dark mode specific input overrides */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] .task-input {
+    background: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #555555 !important;
+}
+
+[data-theme="dark"] input[type="text"]:focus,
+[data-theme="dark"] input[type="number"]:focus,
+[data-theme="dark"] input[type="email"]:focus,
+[data-theme="dark"] input[type="password"]:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] .task-input:focus {
+    border-color: #4dabf7 !important;
+}
+
+/* Labels and form text */
+label {
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.deadline-form label {
+    color: var(--text-primary);
+    margin-right: 10px;
+}
+
+/* Main deadline dropdown at top of page */
+#deadline-select {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    transition: all 0.3s ease;
+    min-width: 150px;
+}
+
+#deadline-select:focus {
+    outline: none;
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+[data-theme="dark"] #deadline-select {
+    background: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #555555 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] #deadline-select option {
+    background: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Deadline display */
+.deadline-display {
+    text-align: center;
+    font-weight: 600;
+    margin: 10px 0;
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
+}
+
+/* Task cell states */
+.task-cell {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.task-cell.task-completed {
+    background: var(--success-color);
+    color: #fff;
+}
+
+.task-cell.task-completed.task-overdue {
+    background: var(--danger-color);
+    color: var(--text-primary);
 }
 
 .dropdown {
@@ -123,7 +688,7 @@ h5 {
 
 /* Base button styling */
 .btn {
-    background: #007BFF;
+    background: var(--accent-blue);
     color: #fff;
     padding: 8px 14px;
     border: none;
@@ -131,14 +696,16 @@ h5 {
     text-decoration: none;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s ease;
     display: inline-block;
     text-align: center;
     box-sizing: border-box;
 }
 
 .btn:hover {
-    background: #0056b3;
+    background: var(--accent-blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--shadow-medium);
 }
 
 /* Top-level action buttons - consistent sizing */
@@ -194,6 +761,12 @@ h5 {
     margin-bottom: 15px;
 }
 
+.table-header h2 {
+    color: var(--text-primary);
+    margin: 0;
+    display: inline-block;
+}
+
 .sort-buttons {
     display: flex;
     gap: 10px;
@@ -214,21 +787,35 @@ h5 {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
-    background: #fff;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
 .task-table th,
 .task-table td {
+    border: 1px solid var(--border-color);
+    padding: 12px;
     text-align: left;
-    padding: 10px;
-    border-bottom: 1px solid #ccc;
-    font-size: 14px;
-    vertical-align: middle;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
 }
 
 .task-table th {
-    background: #f7f7f7;
-    font-weight: 700;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.task-table tr:nth-child(even) {
+    background: var(--bg-secondary);
+}
+
+.task-table tr:hover {
+    background: var(--bg-tertiary);
 }
 
 .task-cell {
@@ -422,20 +1009,24 @@ h5 {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.5s ease;
+    transition: all 0.8s ease;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 /* Session-based background tints */
 .focus-mode-container.work-session-bg {
     background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(0, 123, 255, 0.15));
-    background-color: rgba(0, 123, 255, 0.08);
+    background-color: var(--bg-primary);
     border: 1px solid rgba(0, 123, 255, 0.2);
+    transition: all 0.5s ease;
 }
 
 .focus-mode-container.rest-session-bg {
     background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.15));
-    background-color: rgba(40, 167, 69, 0.08);
+    background-color: var(--bg-primary);
     border: 1px solid rgba(40, 167, 69, 0.2);
+    transition: all 0.5s ease;
 }
 
 .focus-header {
@@ -450,7 +1041,7 @@ h5 {
 .focus-header h1 {
     margin: 0;
     font-size: 36px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .exit-focus-btn {
@@ -476,49 +1067,58 @@ h5 {
     display: flex;
     align-items: center;
     gap: 15px;
-    background: #f8f9fa;
+    background: var(--bg-secondary);
     padding: 20px 30px;
     border-radius: 12px;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
 }
 
+/* Focus mode settings text - ALWAYS black for readability */
 .settings-row label {
     font-weight: 600;
-    color: #495057;
+    color: #000000 !important; /* Always black text */
     font-size: 16px;
+}
+
+.settings-row span {
+    color: #000000 !important; /* Always black text */
+    font-size: 14px;
 }
 
 .time-input {
     width: 60px;
     padding: 8px 10px;
-    border: 2px solid #ced4da;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     text-align: center;
     font-size: 16px;
     font-weight: 600;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
 }
 
 .time-input:focus {
     outline: none;
-    border-color: #007BFF;
+    border-color: var(--accent-blue);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-.settings-row span {
-    color: #6c757d;
-    font-size: 14px;
-}
-
 .settings-btn {
-    background: #007BFF;
+    background: var(--accent-blue);
     color: #fff;
     padding: 8px 16px;
     font-size: 14px;
     font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .settings-btn:hover {
-    background: #0056b3;
+    background: var(--accent-blue-hover);
 }
 
 /* Pomodoro Timer Display */
@@ -529,10 +1129,11 @@ h5 {
 .session-type {
     font-size: 24px;
     font-weight: 700;
-    color: #495057;
+    color: var(--text-secondary);
     margin-bottom: 30px;
     text-transform: uppercase;
     letter-spacing: 2px;
+    transition: color 0.3s ease;
 }
 
 .session-type.work-session {
@@ -567,15 +1168,15 @@ h5 {
 
 /* Different colors for different session types */
 .progress-ring-fill.work-session {
-    stroke: #dc3545; /* Red for work */
+    stroke: var(--danger-color); /* Red for work */
 }
 
 .progress-ring-fill.rest-session {
-    stroke: #28a745; /* Green for rest */
+    stroke: var(--success-color); /* Green for rest */
 }
 
 .progress-ring-fill.completed {
-    stroke: #ffc107; /* Yellow for completed */
+    stroke: var(--warning-color); /* Yellow for completed */
 }
 
 .timer-center {
@@ -590,10 +1191,11 @@ h5 {
     font-size: 48px;
     font-weight: 700;
     font-family: 'Open Sans', monospace;
-    color: #333; /* Black text as requested */
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    color: var(--text-primary);
+    text-shadow: 1px 1px 2px var(--shadow-light);
     margin: 0;
     line-height: 1;
+    transition: color 0.3s ease;
 }
 
 .pomodoro-countdown.completed {
@@ -625,9 +1227,10 @@ h5 {
     gap: 40px;
     margin: 30px 0;
     padding: 20px;
-    background: #f8f9fa;
+    background: var(--bg-secondary);
     border-radius: 12px;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
 }
 
 .counter-item {
@@ -641,7 +1244,7 @@ h5 {
 .counter-label {
     font-size: 16px;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -650,23 +1253,24 @@ h5 {
     font-size: 32px;
     font-weight: 700;
     font-family: 'Open Sans', monospace;
-    color: #007BFF;
-    background: #fff;
+    color: var(--accent-blue);
+    background: var(--bg-primary);
     padding: 10px 20px;
     border-radius: 8px;
-    border: 2px solid #007BFF;
+    border: 2px solid var(--accent-blue);
     min-width: 60px;
     text-align: center;
+    transition: all 0.3s ease;
 }
 
 .counter-item:first-child .counter-value {
-    color: #dc3545;
-    border-color: #dc3545;
+    color: var(--danger-color);
+    border-color: var(--danger-color);
 }
 
 .counter-item:last-child .counter-value {
-    color: #28a745;
-    border-color: #28a745;
+    color: var(--success-color);
+    border-color: var(--success-color);
 }
 
 /* Pomodoro Controls */
@@ -810,6 +1414,376 @@ h5 {
         width: 200px;
         padding: 12px 20px;
         font-size: 16px;
+    }
+}
+
+/* Additional text elements that need theming */
+
+/* Ensure all table text is properly themed */
+.task-table tbody td {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+}
+
+.task-table tbody tr:nth-child(even) td {
+    background: var(--bg-secondary);
+}
+
+.task-table tbody tr:hover td {
+    background: var(--bg-tertiary);
+}
+
+/* ====== FINAL CLEAN OVERRIDES ====== */
+/* These are consolidated and moved from bottom to avoid conflicts */
+
+/* ====== LOADING OVERLAY ====== */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-spinner {
+    background: var(--bg-primary);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--shadow-medium);
+    text-align: center;
+    border: 2px solid var(--border-color);
+    min-width: 200px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+.loading-text {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ====== NOTIFICATIONS ====== */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    max-width: 300px;
+    z-index: 10000;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px var(--shadow-medium);
+}
+
+.notification.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification-success {
+    background: var(--success-color);
+    color: white;
+    border-left: 4px solid #1e7e34;
+}
+
+.notification-error {
+    background: var(--danger-color);
+    color: white;
+    border-left: 4px solid #c21807;
+}
+
+.notification-info {
+    background: var(--info-color);
+    color: white;
+    border-left: 4px solid #117a8b;
+}
+
+/* ====== SMOOTH ANIMATIONS ====== */
+
+/* Form input focus animations */
+.input:focus,
+.task-input:focus,
+.priority-select:focus,
+.deadline-select:focus,
+select:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow-medium) !important;
+}
+
+/* Button hover animations */
+.btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease !important;
+}
+
+.btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px var(--shadow-medium) !important;
+}
+
+.btn:active {
+    transform: translateY(0) !important;
+    transition: all 0.1s ease !important;
+}
+
+/* Table row animations */
+.task-table tr {
+    transition: all 0.3s ease;
+}
+
+.task-table tr:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+/* Priority select border animation */
+.priority-select {
+    transition: all 0.3s ease !important;
+}
+
+.priority-select:hover {
+    transform: scale(1.05);
+}
+
+/* Video container smooth transitions */
+.video-container {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.video-container.hidden {
+    transform: scaleY(0);
+    transform-origin: top;
+}
+
+/* Theme toggle enhancements */
+.theme-label {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.theme-label:hover {
+    transform: scale(1.1);
+}
+
+/* Deadline display pulse animation for urgency */
+.deadline-display.urgent {
+    animation: urgentPulse 2s infinite;
+}
+
+@keyframes urgentPulse {
+    0%, 100% { 
+        transform: scale(1); 
+        color: var(--danger-color);
+    }
+    50% { 
+        transform: scale(1.05); 
+        color: #ff0000;
+    }
+}
+
+/* Task completion animation */
+.task-cell.task-completed {
+    position: relative;
+    overflow: hidden;
+}
+
+.task-cell.task-completed::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.3), 
+        transparent);
+    animation: shimmer 0.8s ease-out;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Focus mode transition enhancement */
+.focus-mode-container {
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Enhanced mobile responsiveness with animations */
+@media (max-width: 768px) {
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        transform: translateY(-100px);
+    }
+    
+    .notification.visible {
+        transform: translateY(0);
+    }
+    
+    .loading-spinner {
+        padding: 20px;
+        min-width: 150px;
+    }
+    
+    .spinner {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .loading-text {
+        font-size: 14px;
+    }
+}
+
+/* ====== MICRO-INTERACTIONS ====== */
+
+/* Checkbox-style completion animation */
+.complete-btn {
+    position: relative;
+    transition: all 0.3s ease !important;
+}
+
+.complete-btn:hover::before {
+    content: '✓';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--success-color);
+    font-weight: bold;
+    animation: checkFadeIn 0.3s ease;
+}
+
+@keyframes checkFadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-50%) scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(-50%) scale(1); 
+    }
+}
+
+/* Delete button danger indication */
+.delete-btn:hover {
+    background: #dc3545 !important;
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.4) !important;
+    animation: dangerPulse 0.5s ease;
+}
+
+@keyframes dangerPulse {
+    0%, 100% { transform: translateY(-2px) scale(1); }
+    50% { transform: translateY(-2px) scale(1.1); }
+}
+
+/* Priority color transition smoothing */
+.priority-select {
+    transition: border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Smooth countdown animations */
+.countdown, .spent-time {
+    transition: all 0.3s ease !important;
+}
+
+.countdown.low-time {
+    animation: lowTimePulse 1s infinite;
+}
+
+@keyframes lowTimePulse {
+    0%, 100% { 
+        transform: scale(1); 
+        color: var(--danger-color);
+    }
+    50% { 
+        transform: scale(1.02); 
+        color: #ff0000;
+        text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+}
+
+/* Enhanced overdue task styling */
+.overdue-task {
+    position: relative;
+    animation: overdueGlow 2s infinite;
+}
+
+@keyframes overdueGlow {
+    0%, 100% { 
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
+        border-left-color: #f44336;
+    }
+    50% { 
+        box-shadow: 0 0 15px rgba(220, 53, 69, 0.6);
+        border-left-color: #ff0000;
+    }
+}
+
+/* ====== ACCESSIBILITY ENHANCEMENTS ====== */
+
+/* Focus indicators */
+*:focus {
+    outline: 2px solid var(--accent-blue) !important;
+    outline-offset: 2px !important;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border: 2px solid currentColor !important;
+    }
+    
+    .notification {
+        border: 2px solid currentColor !important;
     }
 }
 

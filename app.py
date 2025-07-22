@@ -256,16 +256,18 @@ def get_time_increments():
     now = datetime.now()
     minute = (now.minute // 15 + 1) * 15
     hour = now.hour
-    if minute == 60:
+    
+    # Handle minute and hour overflow
+    if minute >= 60:
         hour += 1
         minute = 0
     if hour >= 24:
-        hour -= 24
+        hour = 0  # Use 0 instead of subtracting 24 for clarity
 
     increments = []
     h, m = hour, minute
     for _ in range(48):  # 48 increments => 12 hours
-        display_hour_24 = h % 24
+        display_hour_24 = h % 24  # Ensure we stay in 0-23 range
         if display_hour_24 == 0:
             display_hour_12 = 12
             ampm = "AM"
@@ -281,10 +283,10 @@ def get_time_increments():
 
         increments.append(f"{display_hour_12}:{m:02d} {ampm}")
         m += 15
-        if m == 60:
+        if m >= 60:  # Use >= for consistency
             m = 0
             h += 1
-        if h == 24:
+        if h >= 24:  # Use >= for consistency
             h = 0
     return increments
 
@@ -296,11 +298,26 @@ def get_task_deadline_increments():
     # Start from next 15-minute increment
     minute = (now.minute // 15 + 1) * 15
     hour = now.hour
-    if minute == 60:
+    
+    # Handle minute overflow and hour boundary
+    if minute >= 60:
         hour += 1
         minute = 0
     
-    start_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    # Handle hour overflow (24-hour boundary)
+    if hour >= 24:
+        hour = 0
+        # We need to add a day when hour wraps around
+        now = now + timedelta(days=1)
+    
+    try:
+        start_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    except ValueError as e:
+        # Fallback: use current time + 15 minutes
+        start_time = now + timedelta(minutes=15)
+        start_time = start_time.replace(second=0, microsecond=0)
+    
+    # Ensure start_time is in the future
     if start_time <= now:
         start_time += timedelta(minutes=15)
     
@@ -435,6 +452,21 @@ def index():
         is_task_overdue=is_task_overdue
     )
 
+# ====== AJAX-Enhanced Routes ======
+
+@app.route('/api/tasks')
+def get_tasks():
+    """Get all tasks as JSON for AJAX updates."""
+    current_working_task = get_current_working_task()
+    all_done = (len(tasks) > 0) and all(t['completed'] for t in tasks)
+    
+    return jsonify({
+        'tasks': tasks,
+        'current_working_task': current_working_task.get('text', '') if current_working_task else '',
+        'all_done': all_done,
+        'task_deadline_increments': get_task_deadline_increments()
+    })
+
 # Clear tasks
 @app.route('/clear_tasks', methods=['POST'])
 def clear_tasks():
@@ -442,6 +474,11 @@ def clear_tasks():
     
     tasks.clear()  # Empties the tasks list
     
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'message': 'All tasks cleared'
+        })
     return redirect(url_for('index'))
 
 @app.route('/add', methods=['POST'])
@@ -457,45 +494,99 @@ def add_task():
             'created_at': datetime.now()
         }
         tasks.append(new_task)
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'task': new_task,
+                'task_index': len(tasks) - 1
+            })
     return redirect(url_for('index'))
 
 @app.route('/update_priority/<int:task_id>', methods=['POST'])
 def update_priority(task_id):
+    response_data = {'success': False}
+    
     if 0 <= task_id < len(tasks):
         priority = int(request.form.get('priority', 3))
         tasks[task_id]['priority'] = priority
+        response_data = {
+            'success': True,
+            'task_id': task_id,
+            'priority': priority
+        }
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 @app.route('/update_task_deadline/<int:task_id>', methods=['POST'])
 def update_task_deadline(task_id):
+    response_data = {'success': False}
+    
     if 0 <= task_id < len(tasks):
         deadline_str = request.form.get('task_deadline', '').strip()
         if deadline_str:
             try:
                 task_deadline = datetime.fromisoformat(deadline_str)
                 tasks[task_id]['task_deadline'] = task_deadline
+                response_data = {
+                    'success': True,
+                    'task_id': task_id,
+                    'deadline': task_deadline.isoformat(),
+                    'deadline_display': format_task_deadline(task_deadline)
+                }
             except:
-                pass  # Invalid datetime format
+                response_data = {'success': False, 'error': 'Invalid datetime format'}
         else:
             tasks[task_id]['task_deadline'] = None
+            response_data = {
+                'success': True,
+                'task_id': task_id,
+                'deadline': None
+            }
+            
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 @app.route('/sort_priority_asc', methods=['POST'])
 def sort_priority_asc():
     """Sort tasks by priority ascending (1, 2, 3, 4, 5)"""
     sort_tasks_by_priority()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'tasks': tasks,
+            'sort_type': 'priority_asc'
+        })
     return redirect(url_for('index'))
 
 @app.route('/sort_priority_desc', methods=['POST'])
 def sort_priority_desc():
     """Sort tasks by priority descending (5, 4, 3, 2, 1)"""
     sort_tasks_by_priority_desc()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'tasks': tasks,
+            'sort_type': 'priority_desc'
+        })
     return redirect(url_for('index'))
 
 @app.route('/sort_deadline_asc', methods=['POST'])
 def sort_deadline_asc():
     """Sort tasks by deadline ascending (earliest first)"""
     sort_tasks_by_deadline()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'tasks': tasks,
+            'sort_type': 'deadline_asc'
+        })
     return redirect(url_for('index'))
 
 @app.route('/sort_deadline_desc', methods=['POST'])
@@ -507,6 +598,8 @@ def sort_deadline_desc():
 @app.route('/complete/<int:task_id>')
 def complete_task(task_id):
     global last_completion_time, spent_time_start_time
+    response_data = {'success': False}
+    
     if 0 <= task_id < len(tasks):
         task = tasks[task_id]
         if not task['completed']:
@@ -525,16 +618,41 @@ def complete_task(task_id):
 
             # Update the log with new possible fastest time
             update_fastest_time(task['text'], lap_seconds)
+            
+            response_data = {
+                'success': True,
+                'task': task,
+                'task_id': task_id,
+                'lap_time': task['lap_time']
+            }
         else:
             # Unmark as completed
             task['completed'] = False
             task['lap_time'] = None
+            response_data = {
+                'success': True,
+                'task': task,
+                'task_id': task_id
+            }
+            
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 @app.route('/delete/<int:task_id>')
 def delete_task(task_id):
+    response_data = {'success': False}
+    
     if 0 <= task_id < len(tasks):
         del tasks[task_id]
+        response_data = {
+            'success': True,
+            'task_id': task_id,
+            'remaining_tasks': len(tasks)
+        }
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 @app.route('/set_deadline', methods=['POST'])
@@ -542,6 +660,8 @@ def set_deadline():
     global deadline, countdown_start_time, last_completion_time, spent_time_start_time
     
     time_input = request.form.get('deadline', '').strip()
+    response_data = {'success': False}
+    
     if time_input:
         try:
             time_part, ampm = time_input.split()
@@ -550,12 +670,26 @@ def set_deadline():
             minute = int(mm_str)
             ampm = ampm.upper()
 
+            # Validate input ranges
+            if not (1 <= hour <= 12):
+                raise ValueError("Hour must be between 1 and 12")
+            if not (0 <= minute <= 59):
+                raise ValueError("Minute must be between 0 and 59")
+
+            # Convert to 24-hour format
             if ampm == 'AM':
                 if hour == 12:
-                    hour = 0
-            else:  # PM
+                    hour = 0  # 12 AM = 00:xx
+            elif ampm == 'PM':
                 if hour != 12:
-                    hour += 12
+                    hour += 12  # 1 PM = 13:xx, 11 PM = 23:xx
+                # 12 PM stays as 12 (12:xx)
+            else:
+                raise ValueError("AM/PM indicator must be AM or PM")
+
+            # Final validation for 24-hour format
+            if not (0 <= hour <= 23):
+                raise ValueError(f"Converted hour {hour} is out of range")
 
             now = datetime.now()
             deadline_candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -567,8 +701,19 @@ def set_deadline():
             last_completion_time = now
             spent_time_start_time = now
             
-        except:
-            pass
+            response_data = {
+                'success': True,
+                'deadline': deadline.isoformat(),
+                'deadline_display': format_deadline(deadline)
+            }
+            
+        except ValueError as e:
+            response_data = {'success': False, 'error': f'Invalid time format: {str(e)}'}
+        except Exception as e:
+            response_data = {'success': False, 'error': f'Invalid time format: {str(e)}'}
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 @app.route('/reset_deadline', methods=['POST'])
@@ -578,6 +723,12 @@ def reset_deadline():
     countdown_start_time = None
     last_completion_time = None
     spent_time_start_time = None
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'message': 'Timer reset'
+        })
     return redirect(url_for('index'))
 
 @app.route('/get_remaining_time')
@@ -609,23 +760,52 @@ def add_task_from_log(task_name):
         'created_at': datetime.now()
     }
     tasks.append(new_task)
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'task': new_task,
+            'task_index': len(tasks) - 1
+        })
     return redirect(url_for('index'))
 
 @app.route('/delete_from_log/<task_name>')
 def delete_from_log(task_name):
+    response_data = {'success': False}
+    
     if task_name in task_log:
         del task_log[task_name]
         save_log()
+        response_data = {
+            'success': True,
+            'deleted_task': task_name,
+            'task_log': task_log
+        }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
-# ====== Favorites Routes ======
+# ====== Favorites Routes (AJAX Enhanced) ======
 
 @app.route('/add_favorite', methods=['POST'])
 def add_favorite():
     fav_text = request.form.get('favorite_text', '').strip()
+    response_data = {'success': False}
+    
     if fav_text and fav_text not in favorites:
         favorites.append(fav_text)
         save_favorites()
+        response_data = {
+            'success': True,
+            'favorite': fav_text,
+            'favorites': favorites
+        }
+    elif fav_text in favorites:
+        response_data = {'success': False, 'error': 'Favorite already exists'}
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 @app.route('/add_task_from_favorite/<favorite_name>')
@@ -639,13 +819,30 @@ def add_task_from_favorite(favorite_name):
         'created_at': datetime.now()
     }
     tasks.append(new_task)
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'task': new_task,
+            'task_index': len(tasks) - 1
+        })
     return redirect(url_for('index'))
 
 @app.route('/delete_favorite/<favorite_name>')
 def delete_favorite(favorite_name):
+    response_data = {'success': False}
+    
     if favorite_name in favorites:
         favorites.remove(favorite_name)
         save_favorites()
+        response_data = {
+            'success': True,
+            'deleted_favorite': favorite_name,
+            'favorites': favorites
+        }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(response_data)
     return redirect(url_for('index'))
 
 # ====== Focus Mode Routes ======
