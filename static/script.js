@@ -2,6 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const countdownEl = document.getElementById('countdown');
     const spentTimeEl = document.getElementById('spent-time');
 
+    // Check if we're in focus mode
+    if (focusMode) {
+        initFocusMode();
+        return;
+    }
+
     // If all tasks complete, show "All tasks complete" and do not update timers
     if (allDone) {
         countdownEl.innerText = "All tasks complete";
@@ -16,6 +22,187 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize priority select styling
     initializePrioritySelects();
+
+    function initFocusMode() {
+        const pomodoroTimerEl = document.getElementById('pomodoro-timer');
+        const sessionTypeEl = document.getElementById('session-type');
+        
+        if (!pomodoroTimerEl || !sessionTypeEl) return;
+
+        // Update pomodoro timer every second
+        setInterval(updatePomodoroTimer, 1000);
+        updatePomodoroTimer();
+    }
+
+    function updatePomodoroTimer() {
+        const pomodoroTimerEl = document.getElementById('pomodoro-timer');
+        const sessionTypeEl = document.getElementById('session-type');
+        const progressCircle = document.getElementById('progress-circle');
+        
+        if (!pomodoroTimerEl || !sessionTypeEl || !progressCircle) return;
+
+        fetch('/get_pomodoro_time')
+            .then(r => r.json())
+            .then(data => {
+                const { remaining_seconds, is_work_session, is_running, session_complete, session_changed, previous_session_was_work } = data;
+                
+                // Handle session transitions
+                if (session_changed && session_complete) {
+                    // Show completion message and notification
+                    const completedSessionType = previous_session_was_work ? "work" : "rest";
+                    const nextSessionType = is_work_session ? "work" : "rest";
+                    
+                    // Play completion sound
+                    playCompletionSound();
+                    
+                    // Show browser notification
+                    showBrowserNotification(
+                        previous_session_was_work ? "Work session complete!" : "Rest break complete!",
+                        previous_session_was_work ? "Time for a break! 🌱 Click Start to begin rest." : "Ready to get back to work! 💪 Click Start to begin work."
+                    );
+                    
+                    // Update UI for new session type
+                    updateSessionTypeDisplay(is_work_session, sessionTypeEl, progressCircle);
+                    
+                    // Show session transition message briefly
+                    if (previous_session_was_work) {
+                        pomodoroTimerEl.innerText = "Break Time!";
+                        sessionTypeEl.innerText = "Work Complete! Time for Rest";
+                    } else {
+                        pomodoroTimerEl.innerText = "Work Time!";
+                        sessionTypeEl.innerText = "Rest Complete! Time for Work";
+                    }
+                    
+                    pomodoroTimerEl.className = "pomodoro-countdown completed";
+                    progressCircle.style.strokeDashoffset = 0; // Complete the circle
+                    
+                    // After 3 seconds, show normal session display
+                    setTimeout(() => {
+                        updateSessionTypeDisplay(is_work_session, sessionTypeEl, progressCircle);
+                        
+                        // Get the correct default time for the new session
+                        const workMinutes = parseInt(document.querySelector('#work_minutes')?.value) || 25;
+                        const restMinutes = parseInt(document.querySelector('#rest_minutes')?.value) || 5;
+                        const defaultMinutes = is_work_session ? workMinutes : restMinutes;
+                        const defaultTime = `${defaultMinutes.toString().padStart(2, '0')}:00`;
+                        
+                        pomodoroTimerEl.innerText = defaultTime;
+                        pomodoroTimerEl.className = "pomodoro-countdown";
+                        
+                        // Reset progress circle
+                        const radius = 120;
+                        const circumference = 2 * Math.PI * radius;
+                        progressCircle.style.strokeDashoffset = circumference;
+                    }, 3000);
+                    
+                    return;
+                }
+                
+                // Calculate total session duration for progress
+                const totalDuration = is_work_session ? 
+                    (parseInt(document.querySelector('#work_minutes')?.value) || 25) * 60 :
+                    (parseInt(document.querySelector('#rest_minutes')?.value) || 5) * 60;
+                
+                // Calculate progress (0 to 1)
+                const progress = Math.max(0, Math.min(1, (totalDuration - remaining_seconds) / totalDuration));
+                
+                // Calculate stroke-dashoffset for circular progress
+                const radius = 120; // Match the radius from SVG
+                const circumference = 2 * Math.PI * radius;
+                const strokeDashoffset = circumference - (progress * circumference);
+                
+                // Update progress circle
+                progressCircle.style.strokeDasharray = circumference;
+                progressCircle.style.strokeDashoffset = strokeDashoffset;
+                
+                // Update session type display and colors
+                updateSessionTypeDisplay(is_work_session, sessionTypeEl, progressCircle);
+
+                // Format and display remaining time
+                const minutes = Math.floor(remaining_seconds / 60);
+                const seconds = remaining_seconds % 60;
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                pomodoroTimerEl.innerText = timeString;
+                pomodoroTimerEl.className = "pomodoro-countdown";
+
+                // Add visual feedback for last 10 seconds
+                if (remaining_seconds <= 10 && remaining_seconds > 0 && is_running) {
+                    pomodoroTimerEl.style.animation = 'pulse 0.5s infinite';
+                } else {
+                    pomodoroTimerEl.style.animation = '';
+                }
+            })
+            .catch(err => {
+                console.warn('Error fetching pomodoro time:', err);
+                pomodoroTimerEl.innerText = "25:00";
+                pomodoroTimerEl.className = "pomodoro-countdown";
+                
+                // Reset progress circle on error
+                if (progressCircle) {
+                    const radius = 120;
+                    const circumference = 2 * Math.PI * radius;
+                    progressCircle.style.strokeDashoffset = circumference;
+                }
+            });
+    }
+
+    function updateSessionTypeDisplay(is_work_session, sessionTypeEl, progressCircle) {
+        if (is_work_session) {
+            sessionTypeEl.innerText = "Work Session";
+            sessionTypeEl.className = "session-type work-session";
+            progressCircle.className = "progress-ring-fill work-session";
+        } else {
+            sessionTypeEl.innerText = "Rest Session";
+            sessionTypeEl.className = "session-type rest-session";
+            progressCircle.className = "progress-ring-fill rest-session";
+        }
+    }
+
+    function playCompletionSound() {
+        // Create a simple completion sound using Web Audio API
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (e) {
+            console.log('Audio context not available');
+        }
+    }
+
+    function showBrowserNotification(title, body) {
+        // Request notification permission if not already granted
+        if (Notification.permission === 'granted') {
+            new Notification(title, {
+                body: body,
+                icon: '🍅',
+                tag: 'pomodoro-timer'
+            });
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    new Notification(title, {
+                        body: body,
+                        icon: '🍅',
+                        tag: 'pomodoro-timer'
+                    });
+                }
+            });
+        }
+    }
 
     function initializePrioritySelects() {
         const prioritySelects = document.querySelectorAll('.priority-select');

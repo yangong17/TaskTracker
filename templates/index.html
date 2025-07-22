@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
-    <title>Yang's Task Tracker</title>
+    <title>Yang's Task Tracker{% if focus_mode %} - Focus Mode{% endif %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@700&display=swap" rel="stylesheet">
@@ -11,247 +11,343 @@
     <script>
         var allDone = {% if all_done %}true{% else %}false{% endif %};
         var deadlineSet = {% if deadline_str %}true{% else %}false{% endif %};
+        var focusMode = {% if focus_mode %}true{% else %}false{% endif %};
+        var pomodoroIsRunning = {% if pomodoro_is_running %}true{% else %}false{% endif %};
+        var pomodoroIsPaused = {% if pomodoro_is_paused %}true{% else %}false{% endif %};
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
 <body>
     <div class="container">
 
-        <div class="button-container">
-            <!-- Reset Deadline Form -->
-            <form action="{{ url_for('reset_deadline') }}" method="post" class="inline-form">
-                <button type="submit" class="btn reset-btn">Reset Timer</button>
-            </form>
-        
-            <!-- Clear Tasks Form -->
-            <form action="{{ url_for('clear_tasks') }}" method="post" class="inline-form">
-                <button type="submit" class="btn cleartasks-btn">Clear Tasks</button>
-            </form>
-        </div>
+        {% if focus_mode %}
+            <!-- FOCUS MODE UI -->
+            <div class="focus-mode-container">
+                <div class="focus-header">
+                    <h1>🍅 Focus Mode</h1>
+                    <form action="{{ url_for('toggle_focus_mode') }}" method="post" class="inline-form">
+                        <button type="submit" class="btn exit-focus-btn">Exit Focus Mode</button>
+                    </form>
+                </div>
 
-        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
-
-        <h1>Yang's Task Tracker</h1>
-        
-        {% if deadline_str %}
-        <div class="deadline-display">
-            Deadline: {{ deadline_str }}
-        </div>
-        {% endif %}
-        
-        <!-- Main countdown timer -->
-        <div class="bordered-box">
-            <div class="timeremaining-display">
-                Time Remaining:
-            </div>
-            <div id="countdown" class="countdown">--:--:--</div>
-        </div>  
-
-        <!-- Secondary "spent time" timer -->
-        <div class="bordered-box">
-            <div class="currenttask-display">
-                Time Spent on Current Task:
-            </div>
-            <div id="spent-time" class="spent-time">0:00</div>
-        </div>
-        
-        <!-- Add Task Form -->
-        <form action="{{ url_for('add_task') }}" method="post" class="task-form">
-            <input type="text" name="task_text" placeholder="New task" required class="task-input">
-            <button type="submit" class="btn add-btn">Add Task</button>
-        </form>
-
-        <!-- Deadline and Start Countdown -->
-        <div class="button-container">
-            <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
-                <label for="deadline-select">Deadline:</label>
-                <select name="deadline" id="deadline-select" class="dropdown">
-                    {% for inc in increments %}
-                    <option value="{{ inc }}">{{ inc }}</option>
-                    {% endfor %}
-                </select>
-                    <button type="submit" class="btn deadline-btn" style="float: right;">Start Countdown</button>
-            </form>
-        </div>
-
-        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
-
-        <!------------ LINE BREAK ------------>
-
-        <!-- Tasks Table -->
-        <div class="table-header">
-            <h2 style="display: inline-block;">Current Tasks</h2>
-            <div class="sort-buttons">
-                <form action="{{ url_for('sort_priority_asc') }}" method="post" class="inline-form">
-                    <button type="submit" class="btn sort-btn">Sort 1→5</button>
+                <!-- Pomodoro Timer Settings -->
+                <form action="{{ url_for('update_pomodoro_settings') }}" method="post" class="pomodoro-settings">
+                    <div class="settings-row">
+                        <label for="work_minutes">Work:</label>
+                        <input type="number" id="work_minutes" name="work_minutes" 
+                               value="{{ pomodoro_work_minutes }}" min="1" max="60" class="time-input">
+                        <span>mins</span>
+                        
+                        <label for="rest_minutes">Rest:</label>
+                        <input type="number" id="rest_minutes" name="rest_minutes" 
+                               value="{{ pomodoro_rest_minutes }}" min="1" max="30" class="time-input">
+                        <span>mins</span>
+                        
+                        <button type="submit" class="btn settings-btn">Update</button>
+                    </div>
                 </form>
-                <form action="{{ url_for('sort_priority_desc') }}" method="post" class="inline-form">
-                    <button type="submit" class="btn sort-btn">Sort 5→1</button>
-                </form>
-                <form action="{{ url_for('sort_deadline_asc') }}" method="post" class="inline-form">
-                    <button type="submit" class="btn sort-btn">Sort by Deadline</button>
-                </form>
-            </div>
-        </div>
-        
-        <table class="task-table">
-            <thead>
-                <tr>
-                    <th>Task</th>
-                    <th>Priority (1-5)</th>
-                    <th>Deadline</th>
-                    <th>Time</th>
-                    <th>Complete</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for task in tasks %}
-                <tr class="{{ 'overdue-task' if is_task_overdue(task) else '' }}">
-                    <!-- Task text -->
-                    <td class="task-cell"
-                        style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'white' if task.completed else 'black' }}">
-                        {{ task.text }}
-                    </td>
+
+                <!-- Pomodoro Timer Display -->
+                <div class="pomodoro-timer-container">
+                    <div class="session-type" id="session-type">
+                        {% if pomodoro_is_work_session %}Work Session{% else %}Rest Break{% endif %}
+                    </div>
                     
-                    <!-- Priority -->
-                    <td class="priority-cell">
-                        <form action="{{ url_for('update_priority', task_id=loop.index0) }}" method="post" class="inline-form">
-                            <select name="priority" class="priority-select" onchange="this.form.submit()" 
-                                    style="border-color: {{ get_priority_color(task.get('priority', 3)) }};">
-                                {% for priority_num in range(1, 6) %}
-                                <option value="{{ priority_num }}" 
-                                        {% if task.get('priority', 3) == priority_num %}selected{% endif %}
-                                        style="color: {{ get_priority_color(priority_num) }};">
-                                    {{ priority_num }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </form>
-                    </td>
-                    
-                    <!-- Task Deadline -->
-                    <td class="deadline-cell">
-                        <form action="{{ url_for('update_task_deadline', task_id=loop.index0) }}" method="post" class="inline-form">
-                            <select name="task_deadline" class="deadline-select" onchange="this.form.submit()">
-                                <option value="">No deadline</option>
-                                {% for option in task_deadline_increments %}
-                                <option value="{{ option.value }}" 
-                                        {% if task.get('task_deadline') and task.task_deadline.isoformat() == option.value %}selected{% endif %}>
-                                    {{ option.text }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </form>
-                        {% if task.get('task_deadline') %}
-                        <div class="task-countdown {{ 'overdue-text' if is_task_overdue(task) else '' }}" 
-                             data-deadline="{{ task.task_deadline.isoformat() }}"
-                             data-task-id="{{ loop.index0 }}">
-                            --:--
+                    <!-- Circular Progress Timer -->
+                    <div class="circular-timer">
+                        <svg class="progress-ring" width="300" height="300">
+                            <circle class="progress-ring-bg" 
+                                    cx="150" cy="150" r="120" 
+                                    fill="transparent" 
+                                    stroke="#e9ecef" 
+                                    stroke-width="12"/>
+                            <circle class="progress-ring-fill" 
+                                    cx="150" cy="150" r="120" 
+                                    fill="transparent" 
+                                    stroke="#007BFF" 
+                                    stroke-width="12" 
+                                    stroke-linecap="round"
+                                    id="progress-circle"/>
+                        </svg>
+                        <div class="timer-center">
+                            <div class="pomodoro-countdown" id="pomodoro-timer">25:00</div>
                         </div>
-                        {% endif %}
-                    </td>
+                    </div>
+                </div>
+
+                <!-- Pomodoro Controls -->
+                <div class="pomodoro-controls">
+                    {% if not pomodoro_is_running and not pomodoro_is_paused %}
+                        <!-- Show Start button when timer is not running and not paused -->
+                        <form action="{{ url_for('start_pomodoro') }}" method="post" class="inline-form">
+                            <button type="submit" class="btn start-btn">Start</button>
+                        </form>
+                    {% elif pomodoro_is_running %}
+                        <!-- Show Pause button when timer is running -->
+                        <form action="{{ url_for('pause_pomodoro') }}" method="post" class="inline-form">
+                            <button type="submit" class="btn pause-btn">Pause</button>
+                        </form>
+                    {% elif pomodoro_is_paused %}
+                        <!-- Show Resume button when timer is paused -->
+                        <form action="{{ url_for('resume_pomodoro') }}" method="post" class="inline-form">
+                            <button type="submit" class="btn start-btn">Resume</button>
+                        </form>
+                    {% endif %}
                     
-                    <!-- Lap time -->
-                    <td>
-                        {% if task.lap_time %}
-                            {{ task.lap_time }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    
-                    <!-- Complete button -->
-                    <td>
-                        <a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">
-                            {{ 'Undo' if task.completed else 'Complete' }}
-                        </a>
-                    </td>
-                    
-                    <!-- Delete button -->
-                    <td>
-                        <a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    <!-- Always show Reset button -->
+                    <form action="{{ url_for('reset_pomodoro') }}" method="post" class="inline-form">
+                        <button type="submit" class="btn reset-btn">Reset</button>
+                    </form>
+                </div>
+            </div>
 
-        <!------------ LINE BREAK ------------>
-        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+        {% else %}
+            <!-- NORMAL TASK TRACKER UI -->
+            <div class="button-container">
+                <!-- Focus Mode Button -->
+                <form action="{{ url_for('toggle_focus_mode') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn focus-mode-btn">Focus Mode</button>
+                </form>
 
-        <!-- Previous Tasks Log (same style as main table) -->
-        <h2>Previous Tasks Log</h2>
-        <table class="task-table">
-            <thead>
-                <tr>
-                    <th>Task</th>
-                    <th>Quickest Time</th>
-                    <th>Add Task</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for name, data in task_log.items() %}
-                <tr>
-                    <td>{{ name }}</td>
-                    <td>{{ format_lap_time(data["fastest_time"]) }}</td>
-                    <td>
-                        <a href="{{ url_for('add_task_from_log', task_name=name) }}" class="btn">Add</a>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('delete_from_log', task_name=name) }}" class="btn delete-btn">
-                            Delete
-                        </a>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                <!-- Reset Deadline Form -->
+                <form action="{{ url_for('reset_deadline') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn reset-btn">Reset Timer</button>
+                </form>
+            
+                <!-- Clear Tasks Form -->
+                <form action="{{ url_for('clear_tasks') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn cleartasks-btn">Clear Tasks</button>
+                </form>
+            </div>
 
-        <!------------ LINE BREAK ------------>
-        <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
 
-        <!-- Favorites Table -->
-        <h2>Favorites</h2>
-        
-        <!-- Add Favorite Form -->
-        <form action="{{ url_for('add_favorite') }}" method="post" class="task-form">
-            <input type="text" name="favorite_text" placeholder="Add new favorite task" required class="task-input">
-            <button type="submit" class="btn add-btn">Add Favorite</button>
-        </form>
-
-        <table class="task-table">
-            <thead>
-                <tr>
-                    <th>Favorite Task</th>
-                    <th>Add to Current Tasks</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for favorite in favorites %}
-                <tr>
-                    <td>{{ favorite }}</td>
-                    <td>
-                        <a href="{{ url_for('add_task_from_favorite', favorite_name=favorite) }}" class="btn add-favorite-btn">Add</a>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('delete_favorite', favorite_name=favorite) }}" class="btn delete-btn">
-                            Delete
-                        </a>
-                    </td>
-                </tr>
-            {% endfor %}
-            {% if not favorites %}
-                <tr>
-                    <td colspan="3" style="text-align: center; color: #666; font-style: italic;">
-                        No favorites yet. Add some above for quick task creation!
-                    </td>
-                </tr>
+            <h1>Yang's Task Tracker</h1>
+            
+            {% if deadline_str %}
+            <div class="deadline-display">
+                Deadline: {{ deadline_str }}
+            </div>
             {% endif %}
-            </tbody>
-        </table>
+            
+            <!-- Main countdown timer -->
+            <div class="bordered-box">
+                <div class="timeremaining-display">
+                    Time Remaining:
+                </div>
+                <div id="countdown" class="countdown">--:--:--</div>
+            </div>  
+
+            <!-- Secondary "spent time" timer -->
+            <div class="bordered-box">
+                <div class="currenttask-display">
+                    {% if current_working_task %}
+                        Time Spent on "{{ current_working_task.text }}":
+                    {% else %}
+                        No Current Task:
+                    {% endif %}
+                </div>
+                <div id="spent-time" class="spent-time">0:00</div>
+            </div>
+            
+            <!-- Add Task Form -->
+            <form action="{{ url_for('add_task') }}" method="post" class="task-form">
+                <input type="text" name="task_text" placeholder="New task" required class="task-input">
+                <button type="submit" class="btn add-btn">Add Task</button>
+            </form>
+
+            <!-- Deadline and Start Countdown -->
+            <div class="button-container">
+                <form action="{{ url_for('set_deadline') }}" method="post" class="deadline-form">
+                    <label for="deadline-select">Deadline:</label>
+                    <select name="deadline" id="deadline-select" class="dropdown">
+                        {% for inc in increments %}
+                        <option value="{{ inc }}">{{ inc }}</option>
+                        {% endfor %}
+                    </select>
+                        <button type="submit" class="btn deadline-btn" style="float: right;">Start Countdown</button>
+                </form>
+            </div>
+
+            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+
+            <!------------ REST OF TASK TRACKER UI ------------>
+
+            <!-- Tasks Table -->
+            <div class="table-header">
+                <h2 style="display: inline-block;">Current Tasks</h2>
+                <div class="sort-buttons">
+                    <form action="{{ url_for('sort_priority_asc') }}" method="post" class="inline-form">
+                        <button type="submit" class="btn sort-btn">Sort 1→5</button>
+                    </form>
+                    <form action="{{ url_for('sort_priority_desc') }}" method="post" class="inline-form">
+                        <button type="submit" class="btn sort-btn">Sort 5→1</button>
+                    </form>
+                    <form action="{{ url_for('sort_deadline_asc') }}" method="post" class="inline-form">
+                        <button type="submit" class="btn sort-btn">Sort by Deadline</button>
+                    </form>
+                </div>
+            </div>
+            
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Priority (1-5)</th>
+                        <th>Deadline</th>
+                        <th>Time</th>
+                        <th>Complete</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr class="{{ 'overdue-task' if is_task_overdue(task) else '' }}">
+                        <!-- Task text -->
+                        <td class="task-cell"
+                            style="background: {{ 'green' if task.completed else 'white' }}; color: {{ 'black' if (task.completed and is_task_overdue(task)) else ('white' if task.completed else 'black') }}">
+                            {{ task.text }}
+                        </td>
+                        
+                        <!-- Priority -->
+                        <td class="priority-cell">
+                            <form action="{{ url_for('update_priority', task_id=loop.index0) }}" method="post" class="inline-form">
+                                <select name="priority" class="priority-select" onchange="this.form.submit()" 
+                                        style="border-color: {{ get_priority_color(task.get('priority', 3)) }};">
+                                    {% for priority_num in range(1, 6) %}
+                                    <option value="{{ priority_num }}" 
+                                            {% if task.get('priority', 3) == priority_num %}selected{% endif %}
+                                            style="color: {{ get_priority_color(priority_num) }};">
+                                        {{ priority_num }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        
+                        <!-- Task Deadline -->
+                        <td class="deadline-cell">
+                            <form action="{{ url_for('update_task_deadline', task_id=loop.index0) }}" method="post" class="inline-form">
+                                <select name="task_deadline" class="deadline-select" onchange="this.form.submit()">
+                                    <option value="">No deadline</option>
+                                    {% for option in task_deadline_increments %}
+                                    <option value="{{ option.value }}" 
+                                            {% if task.get('task_deadline') and task.task_deadline.isoformat() == option.value %}selected{% endif %}>
+                                        {{ option.text }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                            {% if task.get('task_deadline') %}
+                            <div class="task-countdown {{ 'overdue-text' if is_task_overdue(task) else '' }}" 
+                                 data-deadline="{{ task.task_deadline.isoformat() }}"
+                                 data-task-id="{{ loop.index0 }}">
+                                --:--
+                            </div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Lap time -->
+                        <td>
+                            {% if task.lap_time %}
+                                {{ task.lap_time }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Complete button -->
+                        <td>
+                            <a href="{{ url_for('complete_task', task_id=loop.index0) }}" class="btn complete-btn">
+                                {{ 'Undo' if task.completed else 'Complete' }}
+                            </a>
+                        </td>
+                        
+                        <!-- Delete button -->
+                        <td>
+                            <a href="{{ url_for('delete_task', task_id=loop.index0) }}" class="btn delete-btn">X</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!------------ LINE BREAK ------------>
+            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+
+            <!-- Previous Tasks Log (same style as main table) -->
+            <h2>Previous Tasks Log</h2>
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Quickest Time</th>
+                        <th>Add Task</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for name, data in task_log.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ format_lap_time(data["fastest_time"]) }}</td>
+                        <td>
+                            <a href="{{ url_for('add_task_from_log', task_name=name) }}" class="btn">Add</a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('delete_from_log', task_name=name) }}" class="btn delete-btn">
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!------------ LINE BREAK ------------>
+            <hr style="border: none; border-top: 3px solid #0053ac; width: 100%; margin: auto;">
+
+            <!-- Favorites Table -->
+            <h2>Favorites</h2>
+            
+            <!-- Add Favorite Form -->
+            <form action="{{ url_for('add_favorite') }}" method="post" class="task-form">
+                <input type="text" name="favorite_text" placeholder="Add new favorite task" required class="task-input">
+                <button type="submit" class="btn add-btn">Add Favorite</button>
+            </form>
+
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>Favorite Task</th>
+                        <th>Add to Current Tasks</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for favorite in favorites %}
+                    <tr>
+                        <td>{{ favorite }}</td>
+                        <td>
+                            <a href="{{ url_for('add_task_from_favorite', favorite_name=favorite) }}" class="btn add-favorite-btn">Add</a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('delete_favorite', favorite_name=favorite) }}" class="btn delete-btn">
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if not favorites %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #666; font-style: italic;">
+                            No favorites yet. Add some above for quick task creation!
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        {% endif %}
     </div>
 </body>
 </html>

@@ -121,6 +121,7 @@ h5 {
     border: 1px solid #ccc;
 }
 
+/* Base button styling */
 .btn {
     background: #007BFF;
     color: #fff;
@@ -131,10 +132,54 @@ h5 {
     font-size: 14px;
     cursor: pointer;
     transition: background 0.3s;
+    display: inline-block;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 .btn:hover {
     background: #0056b3;
+}
+
+/* Top-level action buttons - consistent sizing */
+.focus-mode-btn,
+.reset-btn,
+.cleartasks-btn {
+    padding: 12px 24px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    min-width: 140px !important;
+    height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+
+/* Focus Mode Button */
+.focus-mode-btn {
+    background: #fd7e14; /* Orange for focus mode */
+    color: #fff;
+}
+
+.focus-mode-btn:hover {
+    background: #e36209;
+}
+
+.reset-btn {
+    background: #bd2e2e;
+}
+
+.reset-btn:hover {
+    background: #e93232;
+}
+
+.cleartasks-btn {
+    background: #266cc9;
+}
+
+.cleartasks-btn:hover {
+    background: #44a4ff;
 }
 
 .add-btn {
@@ -297,22 +342,6 @@ h5 {
     background: #007BFF;
 }
 
-.reset-btn {
-    background: #bd2e2e;
-}
-
-.reset-btn:hover {
-    background: #e93232;
-}
-
-.cleartasks-btn {
-    background: #266cc9;
-}
-
-.cleartasks-btn:hover {
-    background: #44a4ff;
-}
-
 /* Favorites specific styling */
 .add-favorite-btn {
     background: #17a2b8; /* Teal color for favorites */
@@ -383,6 +412,232 @@ h5 {
     margin: 0;               /* Remove default margin around forms */
 }
 
+/* ====== FOCUS MODE STYLES ====== */
+
+.focus-mode-container {
+    text-align: center;
+    padding: 40px 20px;
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.focus-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 40px;
+}
+
+.focus-header h1 {
+    margin: 0;
+    font-size: 36px;
+    color: #333;
+}
+
+.exit-focus-btn {
+    background: #6c757d;
+    color: #fff;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.exit-focus-btn:hover {
+    background: #5a6268;
+}
+
+/* Pomodoro Settings */
+.pomodoro-settings {
+    margin-bottom: 60px;
+    display: flex;
+    justify-content: center;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #f8f9fa;
+    padding: 20px 30px;
+    border-radius: 12px;
+    border: 2px solid #dee2e6;
+}
+
+.settings-row label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 16px;
+}
+
+.time-input {
+    width: 60px;
+    padding: 8px 10px;
+    border: 2px solid #ced4da;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.settings-row span {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.settings-btn {
+    background: #007BFF;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.settings-btn:hover {
+    background: #0056b3;
+}
+
+/* Pomodoro Timer Display */
+.pomodoro-timer-container {
+    margin-bottom: 40px;
+}
+
+.session-type {
+    font-size: 24px;
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.session-type.work-session {
+    color: #dc3545; /* Red for work sessions */
+}
+
+.session-type.rest-session {
+    color: #28a745; /* Green for rest sessions */
+}
+
+/* Circular Timer Styles */
+.circular-timer {
+    position: relative;
+    display: inline-block;
+    margin: 20px 0;
+}
+
+.progress-ring {
+    transform: rotate(-90deg); /* Start from top */
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.progress-ring-bg {
+    opacity: 0.3;
+}
+
+.progress-ring-fill {
+    transition: stroke-dasharray 0.3s ease-in-out, stroke 0.3s ease-in-out;
+    stroke-dasharray: 754; /* 2 * π * r = 2 * π * 120 ≈ 754 */
+    stroke-dashoffset: 754;
+}
+
+/* Different colors for different session types */
+.progress-ring-fill.work-session {
+    stroke: #dc3545; /* Red for work */
+}
+
+.progress-ring-fill.rest-session {
+    stroke: #28a745; /* Green for rest */
+}
+
+.progress-ring-fill.completed {
+    stroke: #ffc107; /* Yellow for completed */
+}
+
+.timer-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.pomodoro-countdown {
+    font-size: 48px;
+    font-weight: 700;
+    font-family: 'Open Sans', monospace;
+    color: #333; /* Black text as requested */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    margin: 0;
+    line-height: 1;
+}
+
+.pomodoro-countdown.completed {
+    color: #856404;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Remove old timer styles that are no longer needed */
+.pomodoro-timer {
+    display: none; /* Hide old timer styles */
+}
+
+.pomodoro-timer.work-session,
+.pomodoro-timer.rest-session,
+.pomodoro-timer.completed {
+    display: none; /* Hide old timer styles */
+}
+
+/* Pomodoro Controls */
+.pomodoro-controls {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+}
+
+.start-btn {
+    background: #28a745;
+    color: #fff;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+.start-btn:hover {
+    background: #218838;
+}
+
+.pause-btn {
+    background: #ffc107;
+    color: #212529;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+.pause-btn:hover {
+    background: #e0a800;
+}
+
 /* Enhanced mobile responsiveness */
 @media (max-width: 1000px) {
     .container {
@@ -427,6 +682,59 @@ h5 {
     
     .priority-cell {
         width: 80px;
+    }
+}
+
+/* Focus Mode Responsive Design */
+@media (max-width: 768px) {
+    .focus-mode-container {
+        padding: 20px 10px;
+    }
+    
+    .focus-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .focus-header h1 {
+        font-size: 28px;
+    }
+    
+    .settings-row {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 15px 20px;
+    }
+    
+    .progress-ring {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .progress-ring circle {
+        r: 100; /* Smaller radius for mobile */
+        stroke-width: 10;
+    }
+    
+    .progress-ring-fill {
+        stroke-dasharray: 628; /* 2 * π * 100 ≈ 628 */
+        stroke-dashoffset: 628;
+    }
+    
+    .pomodoro-countdown {
+        font-size: 36px;
+    }
+    
+    .pomodoro-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .start-btn, .pause-btn, .reset-btn {
+        width: 200px;
+        padding: 12px 20px;
+        font-size: 16px;
     }
 }
 

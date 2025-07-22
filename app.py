@@ -9,6 +9,15 @@ app = Flask(__name__)
 tasks = []
 deadline = None
 
+# Focus Mode / Pomodoro Timer state
+focus_mode = False
+pomodoro_work_minutes = 25
+pomodoro_rest_minutes = 5
+pomodoro_is_work_session = True
+pomodoro_start_time = None
+pomodoro_is_running = False
+pomodoro_paused_elapsed = 0  # Track elapsed time when paused
+
 # Timestamps to track various countdowns
 countdown_start_time = None
 last_completion_time = None
@@ -205,6 +214,16 @@ def sort_tasks_by_deadline():
     
     tasks.sort(key=deadline_sort_key)
 
+def get_current_working_task():
+    """Get the highest priority incomplete task (lowest number = highest priority)."""
+    incomplete_tasks = [task for task in tasks if not task.get('completed', False)]
+    if not incomplete_tasks:
+        return None
+    
+    # Sort by priority (lowest number first), then by creation time
+    incomplete_tasks.sort(key=lambda t: (t.get('priority', 5), t.get('created_at', datetime.now())))
+    return incomplete_tasks[0]
+
 def is_task_overdue(task):
     """Check if a task is overdue based on its deadline."""
     if not task.get('task_deadline'):
@@ -382,6 +401,7 @@ def index():
     task_deadline_increments = get_task_deadline_increments()
     all_done = (len(tasks) > 0) and all(t['completed'] for t in tasks)
     deadline_str = format_deadline(deadline)
+    current_working_task = get_current_working_task()
 
     # Sort tasks by priority before displaying (default: lowest number = highest priority)
     sort_tasks_by_priority()
@@ -396,6 +416,13 @@ def index():
         deadline_str=deadline_str,
         task_log=task_log,
         favorites=favorites,
+        current_working_task=current_working_task,
+        focus_mode=focus_mode,
+        pomodoro_work_minutes=pomodoro_work_minutes,
+        pomodoro_rest_minutes=pomodoro_rest_minutes,
+        pomodoro_is_work_session=pomodoro_is_work_session,
+        pomodoro_is_running=pomodoro_is_running,
+        pomodoro_is_paused=(pomodoro_start_time is not None and not pomodoro_is_running),
         format_lap_time=format_lap_time,
         format_task_deadline=format_task_deadline,
         get_priority_color=get_priority_color,
@@ -406,7 +433,9 @@ def index():
 @app.route('/clear_tasks', methods=['POST'])
 def clear_tasks():
     global tasks
+    
     tasks.clear()  # Empties the tasks list
+    
     return redirect(url_for('index'))
 
 @app.route('/add', methods=['POST'])
@@ -505,6 +534,7 @@ def delete_task(task_id):
 @app.route('/set_deadline', methods=['POST'])
 def set_deadline():
     global deadline, countdown_start_time, last_completion_time, spent_time_start_time
+    
     time_input = request.form.get('deadline', '').strip()
     if time_input:
         try:
@@ -530,6 +560,7 @@ def set_deadline():
             countdown_start_time = now
             last_completion_time = now
             spent_time_start_time = now
+            
         except:
             pass
     return redirect(url_for('index'))
@@ -610,6 +641,126 @@ def delete_favorite(favorite_name):
         favorites.remove(favorite_name)
         save_favorites()
     return redirect(url_for('index'))
+
+# ====== Focus Mode Routes ======
+
+@app.route('/toggle_focus_mode', methods=['POST'])
+def toggle_focus_mode():
+    global focus_mode, pomodoro_start_time, pomodoro_is_running
+    focus_mode = not focus_mode
+    
+    # Reset pomodoro timer when exiting focus mode
+    if not focus_mode:
+        pomodoro_start_time = None
+        pomodoro_is_running = False
+    
+    return redirect(url_for('index'))
+
+@app.route('/update_pomodoro_settings', methods=['POST'])
+def update_pomodoro_settings():
+    global pomodoro_work_minutes, pomodoro_rest_minutes
+    
+    work_mins = request.form.get('work_minutes')
+    rest_mins = request.form.get('rest_minutes')
+    
+    if work_mins and work_mins.isdigit():
+        pomodoro_work_minutes = int(work_mins)
+    if rest_mins and rest_mins.isdigit():
+        pomodoro_rest_minutes = int(rest_mins)
+    
+    return redirect(url_for('index'))
+
+@app.route('/start_pomodoro', methods=['POST'])
+def start_pomodoro():
+    global pomodoro_start_time, pomodoro_is_running, pomodoro_is_work_session
+    pomodoro_start_time = datetime.now()
+    pomodoro_is_running = True
+    pomodoro_is_work_session = True  # Always start with work session
+    return redirect(url_for('index'))
+
+@app.route('/pause_pomodoro', methods=['POST'])
+def pause_pomodoro():
+    global pomodoro_is_running, pomodoro_paused_elapsed
+    pomodoro_is_running = False
+    now = datetime.now()
+    if pomodoro_start_time:
+        pomodoro_paused_elapsed = (now - pomodoro_start_time).total_seconds()
+    return redirect(url_for('index'))
+
+@app.route('/resume_pomodoro', methods=['POST'])
+def resume_pomodoro():
+    global pomodoro_start_time, pomodoro_is_running, pomodoro_paused_elapsed
+    pomodoro_start_time = datetime.now() - timedelta(seconds=pomodoro_paused_elapsed)
+    pomodoro_is_running = True
+    pomodoro_paused_elapsed = 0 # Reset paused elapsed time
+    return redirect(url_for('index'))
+
+@app.route('/reset_pomodoro', methods=['POST'])
+def reset_pomodoro():
+    global pomodoro_start_time, pomodoro_is_running, pomodoro_is_work_session, pomodoro_paused_elapsed
+    pomodoro_start_time = None
+    pomodoro_is_running = False
+    pomodoro_is_work_session = True
+    pomodoro_paused_elapsed = 0
+    return redirect(url_for('index'))
+
+@app.route('/get_pomodoro_time')
+def get_pomodoro_time():
+    """Get remaining time in current pomodoro session"""
+    global pomodoro_is_work_session, pomodoro_start_time, pomodoro_is_running, pomodoro_paused_elapsed
+    
+    if not pomodoro_start_time:
+        return jsonify({
+            'remaining_seconds': 0,
+            'is_work_session': pomodoro_is_work_session,
+            'is_running': False,
+            'session_complete': False,
+            'session_changed': False
+        })
+    
+    now = datetime.now()
+    
+    # Calculate elapsed time
+    if pomodoro_is_running:
+        elapsed_seconds = (now - pomodoro_start_time).total_seconds()
+    else:
+        # When paused, use the stored elapsed time
+        elapsed_seconds = pomodoro_paused_elapsed
+    
+    session_duration = pomodoro_work_minutes * 60 if pomodoro_is_work_session else pomodoro_rest_minutes * 60
+    remaining_seconds = max(0, session_duration - elapsed_seconds)
+    
+    session_complete = remaining_seconds <= 0
+    session_changed = False
+    
+    # Handle automatic session transition
+    if session_complete and pomodoro_is_running:
+        # Switch to the next session type
+        pomodoro_is_work_session = not pomodoro_is_work_session
+        session_changed = True
+        
+        # Reset timer for the new session but keep it paused
+        pomodoro_start_time = None
+        pomodoro_is_running = False
+        pomodoro_paused_elapsed = 0
+        
+        # Return the new session info
+        return jsonify({
+            'remaining_seconds': 0,
+            'is_work_session': pomodoro_is_work_session,
+            'is_running': False,
+            'session_complete': True,
+            'session_changed': True,
+            'previous_session_was_work': not pomodoro_is_work_session
+        })
+    
+    return jsonify({
+        'remaining_seconds': int(remaining_seconds),
+        'is_work_session': pomodoro_is_work_session,
+        'is_running': pomodoro_is_running,
+        'session_complete': session_complete,
+        'session_changed': session_changed
+    })
 
 if __name__ == "__main__":
     load_log()  # Ensure we load the CSV before app.run
