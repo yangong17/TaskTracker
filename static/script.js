@@ -1063,9 +1063,186 @@ class TaskTrackerApp {
     
     // ====== FOCUS MODE SUPPORT ======
     initFocusMode() {
-        // Placeholder for focus mode initialization
-        // The existing focus mode code can be integrated here
         console.log('Focus mode initialized');
+        
+        // Cache focus mode specific elements
+        this.focusElements = {
+            pomodoroTimer: document.getElementById('pomodoro-timer'),
+            progressCircle: document.getElementById('progress-circle'),
+            sessionType: document.getElementById('session-type'),
+            workSessionsCount: document.getElementById('work-sessions-count'),
+            restSessionsCount: document.getElementById('rest-sessions-count'),
+            focusContainer: document.querySelector('.focus-mode-container')
+        };
+        
+        // Start focus mode timer
+        this.startFocusModeTimer();
+        
+        // Add background class based on initial session type
+        this.updateFocusModeBackground();
+    }
+    
+    startFocusModeTimer() {
+        // Clear any existing timers
+        if (this.timers.focusMode) {
+            clearInterval(this.timers.focusMode);
+        }
+        
+        // Start polling for pomodoro time updates
+        this.timers.focusMode = setInterval(() => this.updatePomodoroTimer(), 1000);
+        
+        // Update immediately
+        this.updatePomodoroTimer();
+    }
+    
+    async updatePomodoroTimer() {
+        try {
+            const response = await fetch('/get_pomodoro_time');
+            const data = await response.json();
+            
+            if (!data) return;
+            
+            // Update countdown display
+            if (this.focusElements.pomodoroTimer) {
+                const minutes = Math.floor(data.remaining_seconds / 60);
+                const seconds = data.remaining_seconds % 60;
+                this.focusElements.pomodoroTimer.textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            // Update circular progress ring
+            this.updateProgressRing(data);
+            
+            // Update session type display
+            this.updateSessionType(data);
+            
+            // Update session counters
+            this.updateSessionCounters(data);
+            
+            // Handle session transitions and notifications
+            if (data.session_changed && data.session_complete) {
+                this.handleSessionTransition(data);
+            }
+            
+            // Update background based on session type
+            this.updateFocusModeBackground(data.is_work_session);
+            
+        } catch (error) {
+            console.error('Error fetching pomodoro time:', error);
+        }
+    }
+    
+    updateProgressRing(data) {
+        if (!this.focusElements.progressCircle) return;
+        
+        const circumference = 2 * Math.PI * 120; // radius = 120
+        
+        // Calculate session duration based on current session type
+        const sessionDuration = data.is_work_session ? 
+            (window.pomodoroWorkMinutes || 25) * 60 : 
+            (window.pomodoroRestMinutes || 5) * 60;
+        
+        // Calculate progress (0 = full circle, circumference = empty circle)
+        const progress = 1 - (data.remaining_seconds / sessionDuration);
+        const offset = circumference * (1 - progress);
+        
+        // Update stroke dash offset
+        this.focusElements.progressCircle.style.strokeDasharray = circumference;
+        this.focusElements.progressCircle.style.strokeDashoffset = offset;
+        
+        // Update colors based on session type
+        this.focusElements.progressCircle.className = 'progress-ring-fill ' + 
+            (data.is_work_session ? 'work-session' : 'rest-session');
+        
+        // Add completed class when session is done
+        if (data.session_complete) {
+            this.focusElements.progressCircle.classList.add('completed');
+            this.focusElements.pomodoroTimer.classList.add('completed');
+        } else {
+            this.focusElements.progressCircle.classList.remove('completed');
+            this.focusElements.pomodoroTimer.classList.remove('completed');
+        }
+    }
+    
+    updateSessionType(data) {
+        if (!this.focusElements.sessionType) return;
+        
+        const sessionText = data.is_work_session ? 'Work Session' : 'Rest Break';
+        this.focusElements.sessionType.textContent = sessionText;
+        
+        // Update CSS classes for styling
+        this.focusElements.sessionType.className = 'session-type ' + 
+            (data.is_work_session ? 'work-session' : 'rest-session');
+    }
+    
+    updateSessionCounters(data) {
+        if (this.focusElements.workSessionsCount) {
+            this.focusElements.workSessionsCount.textContent = data.work_sessions_completed || 0;
+        }
+        if (this.focusElements.restSessionsCount) {
+            this.focusElements.restSessionsCount.textContent = data.rest_sessions_completed || 0;
+        }
+    }
+    
+    updateFocusModeBackground(isWorkSession = null) {
+        if (!this.focusElements.focusContainer) return;
+        
+        // Remove existing background classes
+        this.focusElements.focusContainer.classList.remove('work-session-bg', 'rest-session-bg');
+        
+        // Add appropriate background class
+        if (isWorkSession !== null) {
+            const bgClass = isWorkSession ? 'work-session-bg' : 'rest-session-bg';
+            this.focusElements.focusContainer.classList.add(bgClass);
+        }
+    }
+    
+    handleSessionTransition(data) {
+        const previousSessionType = data.previous_session_was_work ? 'work' : 'rest';
+        const currentSessionType = data.is_work_session ? 'work' : 'rest';
+        
+        // Create notification for session completion
+        let message;
+        if (previousSessionType === 'work') {
+            message = `🎉 Work session completed! Time for a ${currentSessionType === 'rest' ? 'break' : 'new work session'}.`;
+        } else {
+            message = `✨ Break time over! Ready for a ${currentSessionType === 'work' ? 'work session' : 'another break'}.`;
+        }
+        
+        this.showSuccess(message);
+        
+        // Add subtle visual feedback
+        if (this.focusElements.focusContainer) {
+            this.focusElements.focusContainer.style.animation = 'pulse 0.8s ease-in-out';
+            setTimeout(() => {
+                this.focusElements.focusContainer.style.animation = '';
+            }, 800);
+        }
+        
+        // Play a subtle notification sound if available
+        this.playSessionTransitionSound();
+    }
+    
+    playSessionTransitionSound() {
+        // Create a subtle beep sound using Web Audio API
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800; // 800 Hz tone
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (error) {
+            // Silently fail if Web Audio API is not supported
+            console.log('Audio notification not supported:', error);
+        }
     }
     
     launchConfetti() {

@@ -26,6 +26,8 @@
         var focusMode = {% if focus_mode %}true{% else %}false{% endif %};
         var pomodoroIsRunning = {% if pomodoro_is_running %}true{% else %}false{% endif %};
         var pomodoroIsPaused = {% if pomodoro_is_paused %}true{% else %}false{% endif %};
+        var pomodoroWorkMinutes = {{ pomodoro_work_minutes }};
+        var pomodoroRestMinutes = {{ pomodoro_rest_minutes }};
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
