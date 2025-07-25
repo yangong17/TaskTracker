@@ -309,6 +309,17 @@ def format_lap_time(seconds):
     else:
         return f"{mins}m {secs}s"
 
+def serialize_task(task):
+    """Serialize a task dictionary for JSON response."""
+    return {
+        'text': task['text'],
+        'completed': task['completed'],
+        'priority': task.get('priority', 3),
+        'task_deadline': task['task_deadline'].isoformat() if task.get('task_deadline') else None,
+        'lap_time': task.get('lap_time'),
+        'created_at': task['created_at'].isoformat() if task.get('created_at') else None,
+        'completed_at': task['completed_at'].isoformat() if task.get('completed_at') else None
+    }
 
 # ====== Routes ======
 
@@ -357,7 +368,7 @@ def get_tasks():
     all_done = (len(tasks) > 0) and all(t['completed'] for t in tasks)
     
     return jsonify({
-        'tasks': tasks,
+        'tasks': [serialize_task(task) for task in tasks],
         'current_working_task': current_working_task.get('text', '') if current_working_task else '',
         'all_done': all_done,
         'task_deadline_increments': get_task_deadline_increments()
@@ -418,32 +429,29 @@ def update_priority(task_id):
 
 @app.route('/update_task_deadline/<int:task_id>', methods=['POST'])
 def update_task_deadline(task_id):
-    response_data = {'success': False}
-    
+    """Update task deadline."""
     if 0 <= task_id < len(tasks):
-        deadline_str = request.form.get('task_deadline', '').strip()
-        if deadline_str:
-            try:
-                task_deadline = datetime.fromisoformat(deadline_str)
-                tasks[task_id]['task_deadline'] = task_deadline
-                response_data = {
-                    'success': True,
-                    'task_id': task_id,
-                    'deadline': task_deadline.isoformat(),
-                    'deadline_display': format_task_deadline(task_deadline)
-                }
-            except:
-                response_data = {'success': False, 'error': 'Invalid datetime format'}
-        else:
-            tasks[task_id]['task_deadline'] = None
-            response_data = {
-                'success': True,
-                'task_id': task_id,
-                'deadline': None
-            }
+        deadline_str = request.form.get('task_deadline', '')
+        
+        try:
+            if deadline_str:
+                # Parse the deadline string into a datetime object
+                deadline = datetime.fromisoformat(deadline_str)
+                tasks[task_id]['task_deadline'] = deadline
+            else:
+                tasks[task_id]['task_deadline'] = None
             
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify(response_data)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'deadline': tasks[task_id]['task_deadline'].isoformat() if tasks[task_id]['task_deadline'] else None
+                })
+        except ValueError as e:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid deadline format: {str(e)}'
+            }), 400
+            
     return redirect(url_for('index'))
 
 @app.route('/sort_priority_asc', methods=['POST'])
@@ -454,7 +462,7 @@ def sort_priority_asc():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
             'success': True,
-            'tasks': tasks,
+            'tasks': [serialize_task(task) for task in tasks],
             'sort_type': 'priority_asc'
         })
     return redirect(url_for('index'))
@@ -467,7 +475,7 @@ def sort_priority_desc():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
             'success': True,
-            'tasks': tasks,
+            'tasks': [serialize_task(task) for task in tasks],
             'sort_type': 'priority_desc'
         })
     return redirect(url_for('index'))
@@ -480,7 +488,7 @@ def sort_deadline_asc():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
             'success': True,
-            'tasks': tasks,
+            'tasks': [serialize_task(task) for task in tasks],
             'sort_type': 'deadline_asc'
         })
     return redirect(url_for('index'))
@@ -489,6 +497,13 @@ def sort_deadline_asc():
 def sort_deadline_desc():
     """Sort tasks by deadline descending (latest first)"""
     sort_tasks_by_deadline()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'tasks': [serialize_task(task) for task in tasks],
+            'sort_type': 'deadline_desc'
+        })
     return redirect(url_for('index'))
 
 @app.route('/complete/<int:task_id>')
@@ -799,14 +814,31 @@ def resume_pomodoro():
 
 @app.route('/reset_pomodoro', methods=['POST'])
 def reset_pomodoro():
+    """Reset pomodoro timer to initial work session state."""
     global pomodoro_start_time, pomodoro_is_running, pomodoro_is_work_session, pomodoro_paused_elapsed
     global work_sessions_completed, rest_sessions_completed
-    pomodoro_start_time = None
-    pomodoro_is_running = False
-    pomodoro_is_work_session = True
-    pomodoro_paused_elapsed = 0
+    
+    # Reset all counters and state
     work_sessions_completed = 0
     rest_sessions_completed = 0
+    pomodoro_paused_elapsed = 0
+    
+    # Reset to work session
+    pomodoro_is_work_session = True
+    pomodoro_is_running = False
+    pomodoro_start_time = None
+    
+    # If this is an AJAX request, return JSON
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'remaining_seconds': pomodoro_work_minutes * 60,
+            'is_work_session': True,
+            'is_running': False,
+            'work_sessions_completed': 0,
+            'rest_sessions_completed': 0
+        })
+    
     return redirect(url_for('index'))
 
 @app.route('/get_pomodoro_time')

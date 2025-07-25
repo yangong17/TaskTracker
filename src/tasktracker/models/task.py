@@ -129,12 +129,7 @@ class Task:
         return priority_colors.get(self.priority, '#6c757d')  # Gray as fallback
     
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert task to dictionary for JSON serialization.
-        
-        Returns:
-            Dictionary representation of the task
-        """
+        """Convert task to dictionary for serialization."""
         return {
             'text': self.text,
             'completed': self.completed,
@@ -142,26 +137,16 @@ class Task:
             'task_deadline': self.task_deadline.isoformat() if self.task_deadline else None,
             'lap_time': self.lap_time,
             'created_at': self.created_at.isoformat(),
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
-            'is_overdue': self.is_overdue(),
-            'priority_color': self.get_priority_color()
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None
         }
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Task':
-        """
-        Create a Task instance from a dictionary.
-        
-        Args:
-            data: Dictionary containing task data
-            
-        Returns:
-            Task instance
-        """
-        # Parse datetime fields
+        """Create task from dictionary."""
+        # Parse datetime strings
+        task_deadline = datetime.fromisoformat(data['task_deadline']) if data.get('task_deadline') else None
         created_at = datetime.fromisoformat(data['created_at']) if data.get('created_at') else datetime.now()
         completed_at = datetime.fromisoformat(data['completed_at']) if data.get('completed_at') else None
-        task_deadline = datetime.fromisoformat(data['task_deadline']) if data.get('task_deadline') else None
         
         return cls(
             text=data['text'],

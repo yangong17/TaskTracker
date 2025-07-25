@@ -456,7 +456,7 @@ class TaskTrackerApp {
     
     createTaskRow(task, index) {
         const row = document.createElement('tr');
-        const isOverdue = task.task_deadline && new Date(task.task_deadline) < new Date();
+        const isOverdue = this.isTaskOverdue(task);
         
         row.className = isOverdue ? 'overdue-task' : '';
         row.innerHTML = `
@@ -1026,223 +1026,155 @@ class TaskTrackerApp {
             const deadlineStr = countdown.getAttribute('data-deadline');
             if (!deadlineStr) return;
             
-            const deadline = new Date(deadlineStr);
-            const timeDiff = deadline - now;
-            
-            if (timeDiff <= 0) {
-                countdown.innerText = "OVERDUE";
-                countdown.classList.add('overdue-text');
-            } else {
-                countdown.classList.remove('overdue-text');
-                
-                const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-                
-                if (hours > 0) {
-                    countdown.innerText = `${hours}h ${minutes}m`;
-                } else if (minutes > 0) {
-                    countdown.innerText = `${minutes}m ${seconds}s`;
-                } else {
-                    countdown.innerText = `${seconds}s`;
+            try {
+                const deadline = new Date(deadlineStr);
+                if (isNaN(deadline)) {
+                    console.error('Invalid deadline date:', deadlineStr);
+                    return;
                 }
                 
-                // Add warning style when less than 15 minutes remaining
-                if (timeDiff <= 15 * 60 * 1000) {
-                    countdown.style.color = '#dc3545';
-                    countdown.style.backgroundColor = '#fff3cd';
-                    countdown.style.borderColor = '#ffc107';
+                const timeDiffMs = deadline - now;
+                const timeDiffSecs = Math.floor(timeDiffMs / 1000);
+                
+                // Update overdue status
+                const isOverdue = timeDiffMs < 0;
+                const taskRow = countdown.closest('tr');
+                const taskCell = taskRow.querySelector('.task-cell');
+                
+                if (isOverdue && !taskCell.classList.contains('task-completed')) {
+                    taskRow.classList.add('overdue-task');
+                    taskCell.classList.add('task-overdue');
+                    countdown.classList.add('overdue-text');
                 } else {
-                    countdown.style.color = '#007BFF';
-                    countdown.style.backgroundColor = '#f8f9fa';
-                    countdown.style.borderColor = '#dee2e6';
+                    taskRow.classList.remove('overdue-task');
+                    taskCell.classList.remove('task-overdue');
+                    countdown.classList.remove('overdue-text');
                 }
+                
+                // Update countdown display
+                countdown.innerText = this.formatCountdown(timeDiffSecs);
+            } catch (e) {
+                console.error('Error updating countdown:', e);
             }
         });
     }
     
-    // ====== FOCUS MODE SUPPORT ======
+    // ====== SIMPLE FOCUS MODE ======
     initFocusMode() {
-        console.log('Focus mode initialized');
+        console.log('🍅 Simple Focus Mode starting...');
         
-        // Cache focus mode specific elements
-        this.focusElements = {
-            pomodoroTimer: document.getElementById('pomodoro-timer'),
-            progressCircle: document.getElementById('progress-circle'),
-            sessionType: document.getElementById('session-type'),
-            workSessionsCount: document.getElementById('work-sessions-count'),
-            restSessionsCount: document.getElementById('rest-sessions-count'),
-            focusContainer: document.querySelector('.focus-mode-container')
-        };
-        
-        // Start focus mode timer
-        this.startFocusModeTimer();
-        
-        // Add background class based on initial session type
-        this.updateFocusModeBackground();
-    }
-    
-    startFocusModeTimer() {
-        // Clear any existing timers
-        if (this.timers.focusMode) {
-            clearInterval(this.timers.focusMode);
-        }
-        
-        // Start polling for pomodoro time updates
-        this.timers.focusMode = setInterval(() => this.updatePomodoroTimer(), 1000);
+        // Start simple timer that updates every second
+        setInterval(() => {
+            this.updateFocusMode();
+        }, 1000);
         
         // Update immediately
-        this.updatePomodoroTimer();
+        this.updateFocusMode();
     }
     
-    async updatePomodoroTimer() {
-        try {
-            const response = await fetch('/get_pomodoro_time');
-            const data = await response.json();
-            
-            if (!data) return;
-            
-            // Update countdown display
-            if (this.focusElements.pomodoroTimer) {
-                const minutes = Math.floor(data.remaining_seconds / 60);
-                const seconds = data.remaining_seconds % 60;
-                this.focusElements.pomodoroTimer.textContent = 
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    updateFocusMode() {
+        // Get the current URL path
+        const path = window.location.pathname;
+        
+        // Use the appropriate endpoint based on whether we're resetting
+        const endpoint = path.endsWith('reset_pomodoro') ? '/reset_pomodoro' : '/get_pomodoro_time';
+        
+        // Use POST for reset, GET for normal updates
+        const options = path.endsWith('reset_pomodoro') ? {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            
-            // Update circular progress ring
-            this.updateProgressRing(data);
-            
-            // Update session type display
-            this.updateSessionType(data);
-            
-            // Update session counters
-            this.updateSessionCounters(data);
-            
-            // Handle session transitions and notifications
-            if (data.session_changed && data.session_complete) {
-                this.handleSessionTransition(data);
-            }
-            
-            // Update background based on session type
-            this.updateFocusModeBackground(data.is_work_session);
-            
-        } catch (error) {
-            console.error('Error fetching pomodoro time:', error);
-        }
+        } : {};
+        
+        fetch(endpoint, options)
+            .then(response => response.json())
+            .then(data => {
+                console.log('📊 Focus data:', data);
+                
+                // Update timer display
+                const timerElement = document.getElementById('pomodoro-timer');
+                if (timerElement) {
+                    const minutes = Math.floor(data.remaining_seconds / 60);
+                    const seconds = data.remaining_seconds % 60;
+                    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                // Update session type text
+                const sessionElement = document.getElementById('session-type');
+                if (sessionElement) {
+                    sessionElement.textContent = data.is_work_session ? '🔵 Work Session' : '🟢 Rest Break';
+                    // Remove old classes and add new one
+                    sessionElement.classList.remove('work-session', 'rest-session');
+                    sessionElement.classList.add(data.is_work_session ? 'work-session' : 'rest-session');
+                    console.log('📝 Session type:', data.is_work_session ? 'Work' : 'Rest');
+                }
+                
+                // Update counters
+                const workCountElement = document.getElementById('work-sessions-count');
+                const restCountElement = document.getElementById('rest-sessions-count');
+                if (workCountElement) {
+                    workCountElement.textContent = data.work_sessions_completed || 0;
+                    console.log('🔢 Work sessions:', data.work_sessions_completed || 0);
+                }
+                if (restCountElement) {
+                    restCountElement.textContent = data.rest_sessions_completed || 0;
+                    console.log('🔢 Rest sessions:', data.rest_sessions_completed || 0);
+                }
+                
+                // Update background color
+                const container = document.querySelector('.focus-mode-container');
+                if (container) {
+                    // Remove both classes first
+                    container.classList.remove('work-session-bg', 'rest-session-bg');
+                    
+                    // Add the correct class
+                    if (data.is_work_session) {
+                        container.classList.add('work-session-bg');
+                        console.log('🔵 Background: BLUE (work)');
+                    } else {
+                        container.classList.add('rest-session-bg');
+                        console.log('🟢 Background: GREEN (rest)');
+                    }
+                }
+                
+                // Update progress ring
+                this.updateSimpleProgressRing(data);
+                
+                // Show notification when session changes
+                if (data.session_changed) {
+                    const message = data.is_work_session ? 
+                        '🟢 Rest completed! Time to work!' : 
+                        '🔵 Work completed! Time to rest!';
+                    this.showSuccess(message);
+                    console.log('🔔 Session changed:', message);
+                }
+                
+            })
+            .catch(error => {
+                console.error('❌ Error updating focus mode:', error);
+            });
     }
     
-    updateProgressRing(data) {
-        if (!this.focusElements.progressCircle) return;
+    updateSimpleProgressRing(data) {
+        const progressCircle = document.getElementById('progress-circle');
+        if (!progressCircle) return;
         
-        const circumference = 2 * Math.PI * 120; // radius = 120
-        
-        // Calculate session duration based on current session type
-        const sessionDuration = data.is_work_session ? 
+        // Calculate progress
+        const totalSeconds = data.is_work_session ? 
             (window.pomodoroWorkMinutes || 25) * 60 : 
             (window.pomodoroRestMinutes || 5) * 60;
         
-        // Calculate progress (0 = full circle, circumference = empty circle)
-        const progress = 1 - (data.remaining_seconds / sessionDuration);
+        const progress = 1 - (data.remaining_seconds / totalSeconds);
+        const circumference = 2 * Math.PI * 120; // radius = 120
         const offset = circumference * (1 - progress);
         
-        // Update stroke dash offset
-        this.focusElements.progressCircle.style.strokeDasharray = circumference;
-        this.focusElements.progressCircle.style.strokeDashoffset = offset;
+        // Update the circle
+        progressCircle.style.strokeDasharray = circumference;
+        progressCircle.style.strokeDashoffset = offset;
         
-        // Update colors based on session type
-        this.focusElements.progressCircle.className = 'progress-ring-fill ' + 
-            (data.is_work_session ? 'work-session' : 'rest-session');
-        
-        // Add completed class when session is done
-        if (data.session_complete) {
-            this.focusElements.progressCircle.classList.add('completed');
-            this.focusElements.pomodoroTimer.classList.add('completed');
-        } else {
-            this.focusElements.progressCircle.classList.remove('completed');
-            this.focusElements.pomodoroTimer.classList.remove('completed');
-        }
-    }
-    
-    updateSessionType(data) {
-        if (!this.focusElements.sessionType) return;
-        
-        const sessionText = data.is_work_session ? 'Work Session' : 'Rest Break';
-        this.focusElements.sessionType.textContent = sessionText;
-        
-        // Update CSS classes for styling
-        this.focusElements.sessionType.className = 'session-type ' + 
-            (data.is_work_session ? 'work-session' : 'rest-session');
-    }
-    
-    updateSessionCounters(data) {
-        if (this.focusElements.workSessionsCount) {
-            this.focusElements.workSessionsCount.textContent = data.work_sessions_completed || 0;
-        }
-        if (this.focusElements.restSessionsCount) {
-            this.focusElements.restSessionsCount.textContent = data.rest_sessions_completed || 0;
-        }
-    }
-    
-    updateFocusModeBackground(isWorkSession = null) {
-        if (!this.focusElements.focusContainer) return;
-        
-        // Remove existing background classes
-        this.focusElements.focusContainer.classList.remove('work-session-bg', 'rest-session-bg');
-        
-        // Add appropriate background class
-        if (isWorkSession !== null) {
-            const bgClass = isWorkSession ? 'work-session-bg' : 'rest-session-bg';
-            this.focusElements.focusContainer.classList.add(bgClass);
-        }
-    }
-    
-    handleSessionTransition(data) {
-        const previousSessionType = data.previous_session_was_work ? 'work' : 'rest';
-        const currentSessionType = data.is_work_session ? 'work' : 'rest';
-        
-        // Create notification for session completion
-        let message;
-        if (previousSessionType === 'work') {
-            message = `🎉 Work session completed! Time for a ${currentSessionType === 'rest' ? 'break' : 'new work session'}.`;
-        } else {
-            message = `✨ Break time over! Ready for a ${currentSessionType === 'work' ? 'work session' : 'another break'}.`;
-        }
-        
-        this.showSuccess(message);
-        
-        // Add subtle visual feedback
-        if (this.focusElements.focusContainer) {
-            this.focusElements.focusContainer.style.animation = 'pulse 0.8s ease-in-out';
-            setTimeout(() => {
-                this.focusElements.focusContainer.style.animation = '';
-            }, 800);
-        }
-        
-        // Play a subtle notification sound if available
-        this.playSessionTransitionSound();
-    }
-    
-    playSessionTransitionSound() {
-        // Create a subtle beep sound using Web Audio API
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800; // 800 Hz tone
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
-        } catch (error) {
-            // Silently fail if Web Audio API is not supported
-            console.log('Audio notification not supported:', error);
-        }
+        // Set color based on session type
+        progressCircle.style.stroke = data.is_work_session ? '#007BFF' : '#28a745';
     }
     
     launchConfetti() {
@@ -1288,6 +1220,37 @@ class TaskTrackerApp {
     }
     
     // ... (include existing timer functions with minimal modifications)
+
+    isTaskOverdue(task) {
+        if (!task.task_deadline || task.completed) {
+            return false;
+        }
+        try {
+            // Parse the ISO date string
+            const deadline = new Date(task.task_deadline);
+            return !isNaN(deadline) && deadline < new Date();
+        } catch (e) {
+            console.error('Error parsing deadline:', e);
+            return false;
+        }
+    }
+
+    formatCountdown(seconds) {
+        if (seconds < 0) {
+            return "OVERDUE";
+        }
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+
+        if (hrs > 0) {
+            return `${hrs}h ${mins}m`;
+        } else if (mins > 0) {
+            return `${mins}m ${secs}s`;
+        } else {
+            return `${secs}s`;
+        }
+    }
 }
 
 // Initialize the app when DOM is ready
