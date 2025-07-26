@@ -134,12 +134,14 @@ body {
 }
 
 .theme-icon.sun {
-    left: 8px;
+    left: 5.5px;
+    top: 15px;
     opacity: 1;
 }
 
 .theme-icon.moon {
-    right: 8px;
+    right: 7px;
+    top: 16px;
     opacity: 0.3;
 }
 
